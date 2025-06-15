@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { SuggestionEngine, Suggestion } from '@/utils/suggestionEngine';
 import PromptBlocks from '@/components/builder/PromptBlocks';
@@ -35,6 +34,7 @@ const Builder = () => {
     addBlock,
     removeBlock,
     updateBlockContent,
+    updateBlockProperty,
     clearDraft,
     handleVariableChange,
     setBlocks,
@@ -185,6 +185,7 @@ const Builder = () => {
                   blocks={blocks}
                   removeBlock={removeBlock}
                   updateBlockContent={updateBlockContent}
+                  updateBlockProperty={updateBlockProperty}
                   addBlock={addBlock}
                   clearDraft={clearDraft}
                 />
