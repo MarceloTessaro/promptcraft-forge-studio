@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { Template as CustomTemplate } from '@/types/builder';
+import { Template as CustomTemplate, PromptBlock } from '@/types/builder';
 
 interface Template {
   id: string;
@@ -25,7 +26,7 @@ interface Template {
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   rating: number;
   uses: number;
-  prompt: string;
+  blocks: PromptBlock[];
   tags: string[];
 }
 
@@ -63,7 +64,10 @@ const Templates: React.FC = () => {
       rating: 4.8,
       uses: 2340,
       tags: ['storytelling', 'creative', 'narrative'],
-      prompt: 'You are a creative writing assistant. Help me write a [TYPE] story about [TOPIC] in a [TONE] tone. The story should be approximately [LENGTH] words and include [ELEMENTS].'
+      blocks: [
+        { id: 'lib-1-1', type: 'context', content: 'You are a creative writing assistant.', placeholder: 'Provide context...' },
+        { id: 'lib-1-2', type: 'task', content: 'Help me write a {{type}} story about {{topic}} in a {{tone}} tone. The story should be approximately {{length}} words and include {{elements}}.', placeholder: 'Define the task...' }
+      ]
     },
     {
       id: '2',
@@ -75,7 +79,11 @@ const Templates: React.FC = () => {
       rating: 4.9,
       uses: 1890,
       tags: ['code review', 'optimization', 'debugging'],
-      prompt: 'As an expert code reviewer, analyze the following [LANGUAGE] code for: 1) Bugs and errors, 2) Performance optimizations, 3) Best practices, 4) Security vulnerabilities. Provide specific suggestions with examples.'
+      blocks: [
+        { id: 'lib-2-1', type: 'context', content: 'As an expert code reviewer,', placeholder: 'Provide context...' },
+        { id: 'lib-2-2', type: 'task', content: 'analyze the following {{language}} code for:\n1) Bugs and errors\n2) Performance optimizations\n3) Best practices\n4) Security vulnerabilities.', placeholder: 'Define the task...' },
+        { id: 'lib-2-3', type: 'format', content: 'Provide specific suggestions with examples.', placeholder: 'Specify format...' }
+      ]
     },
     {
       id: '3',
@@ -87,7 +95,11 @@ const Templates: React.FC = () => {
       rating: 4.7,
       uses: 1567,
       tags: ['data analysis', 'insights', 'visualization'],
-      prompt: 'Act as a data analyst. Analyze the following dataset and provide: 1) Key trends and patterns, 2) Statistical insights, 3) Actionable recommendations, 4) Suggested visualizations. Format your response clearly with headers and bullet points.'
+      blocks: [
+        { id: 'lib-3-1', type: 'context', content: 'Act as a data analyst.', placeholder: 'Provide context...' },
+        { id: 'lib-3-2', type: 'task', content: 'Analyze the following dataset and provide:\n1) Key trends and patterns\n2) Statistical insights\n3) Actionable recommendations\n4) Suggested visualizations.', placeholder: 'Define the task...' },
+        { id: 'lib-3-3', type: 'format', content: 'Format your response clearly with headers and bullet points.', placeholder: 'Specify format...' }
+      ]
     },
     {
       id: '4',
@@ -99,7 +111,10 @@ const Templates: React.FC = () => {
       rating: 4.6,
       uses: 987,
       tags: ['education', 'teaching', 'learning'],
-      prompt: 'You are an experienced educator. Create a comprehensive lesson plan for [SUBJECT] targeting [GRADE_LEVEL] students. Include: learning objectives, activities, assessments, and resources.'
+      blocks: [
+        { id: 'lib-4-1', type: 'context', content: 'You are an experienced educator.', placeholder: 'Provide context...' },
+        { id: 'lib-4-2', type: 'task', content: 'Create a comprehensive lesson plan for {{subject}} targeting {{grade_level}} students. Include: learning objectives, activities, assessments, and resources.', placeholder: 'Define the task...' }
+      ]
     },
     {
       id: '5',
@@ -111,7 +126,10 @@ const Templates: React.FC = () => {
       rating: 4.8,
       uses: 2103,
       tags: ['strategy', 'business', 'analysis'],
-      prompt: 'As a business strategy consultant, analyze [COMPANY/SITUATION] and provide: 1) SWOT analysis, 2) Market opportunities, 3) Strategic recommendations, 4) Implementation roadmap with timelines and KPIs.'
+      blocks: [
+        { id: 'lib-5-1', type: 'context', content: 'As a business strategy consultant,', placeholder: 'Provide context...' },
+        { id: 'lib-5-2', type: 'task', content: 'analyze {{company_or_situation}} and provide:\n1) SWOT analysis\n2) Market opportunities\n3) Strategic recommendations\n4) Implementation roadmap with timelines and KPIs.', placeholder: 'Define the task...' }
+      ]
     },
     {
       id: '6',
@@ -123,7 +141,9 @@ const Templates: React.FC = () => {
       rating: 4.5,
       uses: 3421,
       tags: ['midjourney', 'dalle', 'stable diffusion'],
-      prompt: 'Create a detailed image of [SUBJECT] in [STYLE] style, [LIGHTING] lighting, [COMPOSITION], [COLOR_PALETTE], high quality, detailed, professional photography, [ADDITIONAL_DETAILS] --ar [ASPECT_RATIO] --v 6'
+      blocks: [
+        { id: 'lib-6-1', type: 'task', content: 'Create a detailed image of {{subject}} in {{style}} style, {{lighting}} lighting, {{composition}}, {{color_palette}}, high quality, detailed, professional photography, {{additional_details}} --ar {{aspect_ratio}} --v 6', placeholder: 'Define the task...' }
+      ]
     }
   ];
 
@@ -138,11 +158,7 @@ const Templates: React.FC = () => {
   });
 
   const useTemplate = (template: Template) => {
-    navigator.clipboard.writeText(template.prompt);
-    toast({
-      title: "Template copied",
-      description: `"${template.title}" has been copied to your clipboard.`,
-    });
+    navigate('/builder', { state: { blocks: template.blocks } });
   };
 
   const useMyTemplate = (template: CustomTemplate) => {
