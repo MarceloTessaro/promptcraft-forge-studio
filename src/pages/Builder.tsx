@@ -1,10 +1,11 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import { PromptBlock } from '@/types/builder';
-import { PromptBlocks } from '@/components/builder/PromptBlocks';
-import { PreviewPanel } from '@/components/builder/PreviewPanel';
-import { Header } from '@/components/builder/Header';
+import PromptBlocks from '@/components/builder/PromptBlocks';
+import PreviewPanel from '@/components/builder/PreviewPanel';
+import Header from '@/components/builder/Header';
 import { useTemplates } from '@/hooks/use-templates';
 import { SuggestionEngine, Suggestion } from '@/utils/suggestionEngine';
 import SmartSuggestions from '@/components/builder/SmartSuggestions';
