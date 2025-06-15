@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { PromptBlock } from '@/types/builder';
@@ -6,6 +5,7 @@ import Header from '@/components/builder/Header';
 import PromptBlocks from '@/components/builder/PromptBlocks';
 import SuggestionsSidebar from '@/components/builder/SuggestionsSidebar';
 import PreviewPanel from '@/components/builder/PreviewPanel';
+import { ToastAction } from '@/components/ui/toast';
 
 const initialBlocks: PromptBlock[] = [
   {
@@ -81,16 +81,24 @@ const Builder: React.FC = () => {
     if (!assembledPrompt) return;
     navigator.clipboard.writeText(assembledPrompt);
     toast({
-      title: "Copied to clipboard",
-      description: "Your prompt has been copied successfully.",
+      title: "Copiado para a área de transferência!",
+      description: "Seu prompt está pronto para ser colado em sua ferramenta de IA favorita.",
+      action: (
+        <ToastAction
+          altText="Test on ChatGPT"
+          onClick={() => window.open("https://chat.openai.com", "_blank")}
+        >
+          Testar no ChatGPT
+        </ToastAction>
+      ),
     });
   };
 
   const savePrompt = () => {
     if (!assembledPrompt) return;
     toast({
-      title: "Prompt saved",
-      description: "Your prompt has been saved to your drafts.",
+      title: "Prompt salvo!",
+      description: "Seu rascunho foi salvo no armazenamento local do seu navegador.",
     });
   };
 

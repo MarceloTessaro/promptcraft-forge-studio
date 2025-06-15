@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
-import { Layout, Code, Star, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Layout, Code, Star, Users, ChevronDown } from 'lucide-react';
 
 const features = [
   {
@@ -31,6 +32,9 @@ const features = [
 ];
 
 const FeaturesSection: React.FC = () => {
+  const [showAll, setShowAll] = useState(false);
+  const displayedFeatures = showAll ? features : features.slice(0, 2);
+
   return (
     <section className="container mx-auto px-4 py-20">
       <div className="text-center mb-16 animate-fadeIn">
@@ -41,7 +45,7 @@ const FeaturesSection: React.FC = () => {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {features.map((feature, index) => (
+        {displayedFeatures.map((feature, index) => (
           <Card 
             key={index}
             className="card-elevated p-8 group hover:scale-[1.02] transition-all duration-300 animate-fadeIn"
@@ -57,6 +61,15 @@ const FeaturesSection: React.FC = () => {
           </Card>
         ))}
       </div>
+      
+      {!showAll && (
+        <div className="text-center mt-12 animate-fadeIn" style={{ animationDelay: '0.2s' }}>
+          <Button variant="secondary" size="lg" onClick={() => setShowAll(true)}>
+            Show All Features
+            <ChevronDown className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
+      )}
     </section>
   );
 };
