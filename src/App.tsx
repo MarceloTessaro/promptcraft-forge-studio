@@ -12,6 +12,9 @@ import Optimizer from "./pages/Optimizer";
 import Learn from "./pages/Learn";
 import Community from "./pages/Community";
 import NotFound from "./pages/NotFound";
+import { AuthProvider } from "./contexts/AuthContext";
+import Auth from "./pages/Auth";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -21,16 +24,24 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/builder" element={<Layout><Builder /></Layout>} />
-          <Route path="/templates" element={<Layout><Templates /></Layout>} />
-          <Route path="/optimizer" element={<Layout><Optimizer /></Layout>} />
-          <Route path="/learn" element={<Layout><Learn /></Layout>} />
-          <Route path="/community" element={<Layout><Community /></Layout>} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/" element={<Index />} />
+            
+            {/* Protected Routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/builder" element={<Layout><Builder /></Layout>} />
+              <Route path="/templates" element={<Layout><Templates /></Layout>} />
+              <Route path="/optimizer" element={<Layout><Optimizer /></Layout>} />
+              <Route path="/learn" element={<Layout><Learn /></Layout>} />
+              <Route path="/community" element={<Layout><Community /></Layout>} />
+            </Route>
+            
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

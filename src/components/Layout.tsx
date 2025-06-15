@@ -2,7 +2,8 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { User, Settings, LogOut, Menu, X } from 'lucide-react';
+import { User, Settings, LogOut, Menu, X, LogIn } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,6 +12,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const { session, signOut } = useAuth();
 
   const navItems = [
     { name: 'Builder', path: '/builder' },
@@ -55,15 +57,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
             {/* Enhanced User Menu */}
             <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm" className="text-white/80 hover:text-white hover:bg-white/10 focus-ring hidden sm:flex">
-                <User className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="sm" className="text-white/80 hover:text-white hover:bg-white/10 focus-ring hidden sm:flex">
-                <Settings className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="sm" className="text-white/80 hover:text-white hover:bg-white/10 focus-ring hidden sm:flex">
-                <LogOut className="w-4 h-4" />
-              </Button>
+              {session ? (
+                <>
+                  <Button variant="ghost" size="sm" className="text-white/80 hover:text-white hover:bg-white/10 focus-ring hidden sm:flex">
+                    <User className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="text-white/80 hover:text-white hover:bg-white/10 focus-ring hidden sm:flex">
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                  <Button onClick={signOut} variant="ghost" size="sm" className="text-white/80 hover:text-white hover:bg-white/10 focus-ring hidden sm:flex">
+                    <LogOut className="w-4 h-4" />
+                  </Button>
+                </>
+              ) : (
+                <Link to="/auth">
+                  <Button variant="outline" size="sm" className="hidden sm:flex items-center gap-2 border-white/20 text-white hover:bg-white/10 hover:text-white">
+                    <LogIn className="w-4 h-4" />
+                    Login
+                  </Button>
+                </Link>
+              )}
               
               {/* Mobile Menu Button */}
               <Button
@@ -98,15 +111,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 
                 {/* Mobile User Actions */}
                 <div className="flex items-center justify-center space-x-4 pt-4 mt-4 border-t border-white/10">
-                  <Button variant="ghost" size="sm" className="text-white/80 hover:text-white">
-                    <User className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-white/80 hover:text-white">
-                    <Settings className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-white/80 hover:text-white">
-                    <LogOut className="w-4 h-4" />
-                  </Button>
+                  {session ? (
+                    <>
+                      <Button variant="ghost" size="sm" className="text-white/80 hover:text-white">
+                        <User className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-white/80 hover:text-white">
+                        <Settings className="w-4 h-4" />
+                      </Button>
+                      <Button onClick={() => { signOut(); setMobileMenuOpen(false); }} variant="ghost" size="sm" className="text-white/80 hover:text-white">
+                        <LogOut className="w-4 h-4" />
+                      </Button>
+                    </>
+                  ) : (
+                     <Link to="/auth" className="w-full">
+                      <Button onClick={() => setMobileMenuOpen(false)} variant="outline" className="w-full flex items-center gap-2 border-white/20 text-white hover:bg-white/10 hover:text-white">
+                        <LogIn className="w-4 h-4" />
+                        Login / Sign Up
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </nav>
             </div>
