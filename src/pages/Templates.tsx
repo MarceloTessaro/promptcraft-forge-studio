@@ -1,0 +1,251 @@
+
+import React, { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Search, 
+  Filter,
+  Star,
+  Copy,
+  Eye,
+  LayoutList,
+  Layout
+} from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+
+interface Template {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  aiModel: string;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  rating: number;
+  uses: number;
+  prompt: string;
+  tags: string[];
+}
+
+const Templates: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  const templates: Template[] = [
+    {
+      id: '1',
+      title: 'Creative Writing Assistant',
+      description: 'Generate creative stories, poems, and narrative content with specific tone and style.',
+      category: 'Creative Writing',
+      aiModel: 'ChatGPT',
+      difficulty: 'Beginner',
+      rating: 4.8,
+      uses: 2340,
+      tags: ['storytelling', 'creative', 'narrative'],
+      prompt: 'You are a creative writing assistant. Help me write a [TYPE] story about [TOPIC] in a [TONE] tone. The story should be approximately [LENGTH] words and include [ELEMENTS].'
+    },
+    {
+      id: '2',
+      title: 'Code Review & Optimization',
+      description: 'Analyze code for bugs, performance issues, and suggest improvements.',
+      category: 'Coding',
+      aiModel: 'Claude',
+      difficulty: 'Advanced',
+      rating: 4.9,
+      uses: 1890,
+      tags: ['code review', 'optimization', 'debugging'],
+      prompt: 'As an expert code reviewer, analyze the following [LANGUAGE] code for: 1) Bugs and errors, 2) Performance optimizations, 3) Best practices, 4) Security vulnerabilities. Provide specific suggestions with examples.'
+    },
+    {
+      id: '3',
+      title: 'Data Analysis Interpreter',
+      description: 'Transform raw data into actionable insights and visualizations.',
+      category: 'Analysis',
+      aiModel: 'ChatGPT',
+      difficulty: 'Intermediate',
+      rating: 4.7,
+      uses: 1567,
+      tags: ['data analysis', 'insights', 'visualization'],
+      prompt: 'Act as a data analyst. Analyze the following dataset and provide: 1) Key trends and patterns, 2) Statistical insights, 3) Actionable recommendations, 4) Suggested visualizations. Format your response clearly with headers and bullet points.'
+    },
+    {
+      id: '4',
+      title: 'Educational Content Creator',
+      description: 'Create engaging educational materials and lesson plans.',
+      category: 'Education',
+      aiModel: 'Claude',
+      difficulty: 'Beginner',
+      rating: 4.6,
+      uses: 987,
+      tags: ['education', 'teaching', 'learning'],
+      prompt: 'You are an experienced educator. Create a comprehensive lesson plan for [SUBJECT] targeting [GRADE_LEVEL] students. Include: learning objectives, activities, assessments, and resources.'
+    },
+    {
+      id: '5',
+      title: 'Business Strategy Advisor',
+      description: 'Develop strategic business recommendations and market analysis.',
+      category: 'Business',
+      aiModel: 'ChatGPT',
+      difficulty: 'Advanced',
+      rating: 4.8,
+      uses: 2103,
+      tags: ['strategy', 'business', 'analysis'],
+      prompt: 'As a business strategy consultant, analyze [COMPANY/SITUATION] and provide: 1) SWOT analysis, 2) Market opportunities, 3) Strategic recommendations, 4) Implementation roadmap with timelines and KPIs.'
+    },
+    {
+      id: '6',
+      title: 'Image Generation Prompt',
+      description: 'Create detailed prompts for AI image generation tools.',
+      category: 'Image Generation',
+      aiModel: 'Midjourney',
+      difficulty: 'Intermediate',
+      rating: 4.5,
+      uses: 3421,
+      tags: ['midjourney', 'dalle', 'stable diffusion'],
+      prompt: 'Create a detailed image of [SUBJECT] in [STYLE] style, [LIGHTING] lighting, [COMPOSITION], [COLOR_PALETTE], high quality, detailed, professional photography, [ADDITIONAL_DETAILS] --ar [ASPECT_RATIO] --v 6'
+    }
+  ];
+
+  const categories = ['all', 'Creative Writing', 'Coding', 'Analysis', 'Education', 'Business', 'Image Generation'];
+
+  const filteredTemplates = templates.filter(template => {
+    const matchesSearch = template.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         template.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         template.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const useTemplate = (template: Template) => {
+    navigator.clipboard.writeText(template.prompt);
+    toast({
+      title: "Template copied",
+      description: `"${template.title}" has been copied to your clipboard.`,
+    });
+  };
+
+  const previewTemplate = (template: Template) => {
+    toast({
+      title: "Preview",
+      description: template.description,
+    });
+  };
+
+  return (
+    <div className="min-h-screen py-8">
+      <div className="container mx-auto px-4">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold gradient-text mb-2">Template Library</h1>
+          <p className="text-white/80">Discover proven prompts for every use case</p>
+        </div>
+
+        {/* Search and Filters */}
+        <Card className="glass p-6 mb-8">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50 w-4 h-4" />
+              <Input
+                placeholder="Search templates..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 glass border-white/20 text-white placeholder-white/50"
+              />
+            </div>
+            <div className="flex gap-2">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="px-4 py-2 glass border border-white/20 rounded-lg text-white bg-transparent"
+              >
+                {categories.map(category => (
+                  <option key={category} value={category} className="bg-slate-800">
+                    {category === 'all' ? 'All Categories' : category}
+                  </option>
+                ))}
+              </select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                className="border-white/20 text-white"
+              >
+                {viewMode === 'grid' ? <LayoutList className="w-4 h-4" /> : <Layout className="w-4 h-4" />}
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        {/* Templates Grid/List */}
+        <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
+          {filteredTemplates.map((template) => (
+            <Card key={template.id} className="glass p-6 hover:glow transition-all duration-300">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-2">{template.title}</h3>
+                  <p className="text-white/70 text-sm mb-3">{template.description}</p>
+                </div>
+                <div className="flex items-center text-yellow-400">
+                  <Star className="w-4 h-4 fill-current" />
+                  <span className="text-sm ml-1">{template.rating}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-1 mb-4">
+                <Badge variant="secondary" className="text-xs">{template.category}</Badge>
+                <Badge variant="outline" className="text-xs border-white/20 text-white/80">{template.aiModel}</Badge>
+                <Badge 
+                  className={`text-xs ${
+                    template.difficulty === 'Beginner' ? 'bg-green-600' :
+                    template.difficulty === 'Intermediate' ? 'bg-yellow-600' : 'bg-red-600'
+                  }`}
+                >
+                  {template.difficulty}
+                </Badge>
+              </div>
+
+              <div className="flex flex-wrap gap-1 mb-4">
+                {template.tags.map((tag, index) => (
+                  <span key={index} className="text-xs text-white/60 bg-white/10 px-2 py-1 rounded">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-white/60">{template.uses.toLocaleString()} uses</span>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => previewTemplate(template)}
+                    className="border-white/20 text-white hover:bg-white/10"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => useTemplate(template)}
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                  >
+                    <Copy className="w-4 h-4 mr-1" />
+                    Use
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {filteredTemplates.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-white/60 text-lg">No templates found matching your search criteria.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Templates;
