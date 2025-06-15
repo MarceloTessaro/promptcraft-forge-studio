@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import {
   Layout, 
   Star, 
   Users, 
-  Arrow-Right,
+  ArrowRight,
   Check 
 } from 'lucide-react';
 
@@ -61,7 +60,7 @@ const Home: React.FC = () => {
             <Link to="/builder">
               <Button size="lg" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-3 glow">
                 Start Building
-                <Arrow-Right className="w-4 h-4 ml-2" />
+                <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
             <Link to="/templates">

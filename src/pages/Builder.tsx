@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ import {
   Settings, 
   Plus,
   Trash2,
-  Arrow-Right
+  ArrowRight
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
