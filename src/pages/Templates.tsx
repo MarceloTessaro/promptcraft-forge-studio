@@ -52,7 +52,7 @@ const Templates: React.FC = () => {
           const formattedTemplates: CustomTemplate[] = data.map(t => ({
             id: t.id,
             name: t.name,
-            blocks: t.prompt as PromptBlock[],
+            blocks: t.prompt as PromptBlock[], // Cast Json to PromptBlock[]
             createdAt: t.created_at,
           }));
           setCustomTemplates(formattedTemplates);
@@ -197,7 +197,7 @@ const Templates: React.FC = () => {
   });
 
   const useTemplate = (template: LibraryTemplate | CustomTemplate) => {
-    navigate('/builder', { state: { blocks: 'blocks' in template ? template.blocks : [] } });
+    navigate('/builder', { state: { template } });
   };
 
   const deleteTemplate = async (id: string) => {

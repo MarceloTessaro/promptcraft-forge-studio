@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
@@ -218,7 +219,7 @@ const Builder: React.FC = () => {
       const { error } = await supabase.from('custom_templates').insert({
         user_id: user.id,
         name,
-        prompt: blocks,
+        prompt: blocks as any, // Cast to any to satisfy Json type
       });
 
       if (error) {
