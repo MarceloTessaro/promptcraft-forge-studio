@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Dialog,
@@ -11,7 +10,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Copy, Star } from 'lucide-react';
-import { Template as CustomTemplate, PromptBlock } from '@/types/builder';
+import { CustomTemplate, PromptBlock } from '@/types/builder';
+import { LibraryTemplate } from '@/types/templates';
 
 // This is the local interface from Templates.tsx
 interface LibraryTemplate {

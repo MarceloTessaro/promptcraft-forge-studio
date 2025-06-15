@@ -1,4 +1,5 @@
 
+```ts
 export interface PromptBlock {
   id: string;
   type: 'context' | 'task' | 'format' | 'constraints' | 'examples';
@@ -6,9 +7,10 @@ export interface PromptBlock {
   placeholder: string;
 }
 
-export interface Template {
+export interface CustomTemplate {
   id: string;
   name: string;
   blocks: PromptBlock[];
   createdAt: string;
 }
+```

@@ -1,8 +1,9 @@
 
+```tsx
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { PromptBlock, Template } from '@/types/builder';
+import { PromptBlock, CustomTemplate } from '@/types/builder';
 import Header from '@/components/builder/Header';
 import PromptBlocks from '@/components/builder/PromptBlocks';
 import SuggestionsSidebar from '@/components/builder/SuggestionsSidebar';
@@ -204,7 +205,7 @@ const Builder: React.FC = () => {
 
   const handleSaveTemplate = (name: string) => {
     try {
-      const newTemplate: Template = {
+      const newTemplate: CustomTemplate = {
         id: Date.now().toString(),
         name,
         blocks,
@@ -212,7 +213,7 @@ const Builder: React.FC = () => {
       };
 
       const existingTemplatesStr = localStorage.getItem('promptcraft-templates');
-      const existingTemplates: Template[] = existingTemplatesStr ? JSON.parse(existingTemplatesStr) : [];
+      const existingTemplates: CustomTemplate[] = existingTemplatesStr ? JSON.parse(existingTemplatesStr) : [];
       
       localStorage.setItem('promptcraft-templates', JSON.stringify([...existingTemplates, newTemplate]));
       
@@ -310,3 +311,4 @@ const Builder: React.FC = () => {
 };
 
 export default Builder;
+```
