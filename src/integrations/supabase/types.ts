@@ -9,7 +9,118 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      health_records: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          pet_id: string
+          record_date: string
+          record_type: Database["public"]["Enums"]["health_record_type"]
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          pet_id: string
+          record_date: string
+          record_type: Database["public"]["Enums"]["health_record_type"]
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          pet_id?: string
+          record_date?: string
+          record_type?: Database["public"]["Enums"]["health_record_type"]
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_records_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pets: {
+        Row: {
+          age: number
+          avatar_url: string | null
+          breed: string
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          age: number
+          avatar_url?: string | null
+          breed: string
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          age?: number
+          avatar_url?: string | null
+          breed?: string
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reminders: {
+        Row: {
+          created_at: string
+          due_date: string
+          id: string
+          notes: string | null
+          pet_id: string
+          status: Database["public"]["Enums"]["reminder_status"]
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          id?: string
+          notes?: string | null
+          pet_id: string
+          status?: Database["public"]["Enums"]["reminder_status"]
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          id?: string
+          notes?: string | null
+          pet_id?: string
+          status?: Database["public"]["Enums"]["reminder_status"]
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +129,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      health_record_type:
+        | "vaccine"
+        | "vet_visit"
+        | "medication"
+        | "deworming"
+        | "other"
+      reminder_status: "pending" | "completed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +250,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      health_record_type: [
+        "vaccine",
+        "vet_visit",
+        "medication",
+        "deworming",
+        "other",
+      ],
+      reminder_status: ["pending", "completed"],
+    },
   },
 } as const

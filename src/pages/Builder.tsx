@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { PromptBlock } from '@/types/builder';
@@ -48,6 +49,78 @@ const Builder: React.FC = () => {
   const [variables, setVariables] = useState<string[]>([]);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [renderedPrompt, setRenderedPrompt] = useState('');
+
+  // State for AI Preview
+  const [openaiApiKey, setOpenaiApiKey] = useState('');
+  const [aiPreview, setAiPreview] = useState('');
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState('');
+
+  useEffect(() => {
+    const savedKey = localStorage.getItem('promptcraft-openai-apikey');
+    if (savedKey) {
+      setOpenaiApiKey(savedKey);
+    }
+  }, []);
+
+  const handleApiKeyChange = (key: string) => {
+    setOpenaiApiKey(key);
+    localStorage.setItem('promptcraft-openai-apikey', key);
+    toast({
+      title: "API Key Saved",
+      description: "Your OpenAI API key has been saved in local storage.",
+    });
+  };
+
+  const generatePreview = async () => {
+    if (!openaiApiKey) {
+      setPreviewError("Please provide your OpenAI API key to generate a preview.");
+      toast({
+        title: "OpenAI API Key Required",
+        description: "An API key is needed to generate previews.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!renderedPrompt) return;
+
+    setIsPreviewLoading(true);
+    setAiPreview('');
+    setPreviewError('');
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiApiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: renderedPrompt }],
+          max_tokens: 250,
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Failed to fetch AI preview.');
+      }
+
+      const data = await response.json();
+      setAiPreview(data.choices[0].message.content);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      setPreviewError(errorMessage);
+      toast({
+        title: "Error Generating Preview",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
 
   const getPlaceholder = (type: PromptBlock['type']): string => {
     const placeholders = {
@@ -172,6 +245,12 @@ const Builder: React.FC = () => {
             variables={variables}
             variableValues={variableValues}
             onVariableChange={handleVariableChange}
+            aiPreview={aiPreview}
+            isPreviewLoading={isPreviewLoading}
+            previewError={previewError}
+            generatePreview={generatePreview}
+            openaiApiKey={openaiApiKey}
+            onApiKeyChange={handleApiKeyChange}
           />
         </div>
       </div>
