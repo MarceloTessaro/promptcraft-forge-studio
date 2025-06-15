@@ -1,19 +1,20 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { 
   Search, 
-  Filter,
   Star,
   Copy,
   Eye,
   LayoutList,
-  Layout
+  Layout,
+  Trash2
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { Template as CustomTemplate } from '@/types/builder';
 
 interface Template {
   id: string;
@@ -32,6 +33,24 @@ const Templates: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    try {
+      const savedTemplates = localStorage.getItem('promptcraft-templates');
+      if (savedTemplates) {
+        setCustomTemplates(JSON.parse(savedTemplates));
+      }
+    } catch (error) {
+      console.error("Failed to load custom templates", error);
+      toast({
+        title: "Error",
+        description: "Could not load your saved templates.",
+        variant: "destructive",
+      });
+    }
+  }, []);
 
   const templates: Template[] = [
     {
@@ -126,6 +145,20 @@ const Templates: React.FC = () => {
     });
   };
 
+  const useMyTemplate = (template: CustomTemplate) => {
+    navigate('/builder', { state: { blocks: template.blocks } });
+  };
+
+  const deleteTemplate = (id: string) => {
+    const updatedTemplates = customTemplates.filter(t => t.id !== id);
+    setCustomTemplates(updatedTemplates);
+    localStorage.setItem('promptcraft-templates', JSON.stringify(updatedTemplates));
+    toast({
+      title: "Template Deleted",
+      description: "The template has been removed.",
+    });
+  };
+
   const previewTemplate = (template: Template) => {
     toast({
       title: "Preview",
@@ -176,6 +209,49 @@ const Templates: React.FC = () => {
             </div>
           </div>
         </Card>
+
+        {/* My Templates Section */}
+        {customTemplates.length > 0 && (
+          <div className="mb-12">
+            <h2 className="text-3xl font-bold gradient-text mb-6">My Saved Templates</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {customTemplates.map((template) => (
+                <Card key={template.id} className="glass p-6 hover:glow transition-all duration-300 flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-2">{template.name}</h3>
+                    <p className="text-sm text-white/60">
+                      Created on {new Date(template.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-end gap-2 mt-4">
+                    <Button
+                      size="icon"
+                      variant="destructive"
+                      onClick={() => deleteTemplate(template.id)}
+                      className="bg-red-900/50 hover:bg-red-900/80 border-red-500/30"
+                      title="Delete Template"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => useMyTemplate(template)}
+                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                    >
+                      <Copy className="w-4 h-4 mr-1" />
+                      Use
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Library Templates Section */}
+        <div className="mb-8 flex justify-between items-center">
+          <h2 className="text-3xl font-bold gradient-text">Template Library</h2>
+        </div>
 
         {/* Templates Grid/List */}
         <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>

@@ -1,4 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { PromptBlock, Template } from '@/types/builder';
 import Header from '@/components/builder/Header';
@@ -29,7 +31,16 @@ const initialBlocks: PromptBlock[] = [
 ];
 
 const Builder: React.FC = () => {
+  const location = useLocation();
+  const templateToLoad = location.state?.blocks as PromptBlock[] | undefined;
+
   const [blocks, setBlocks] = useState<PromptBlock[]>(() => {
+    // 1. Check for template from navigation state
+    if (templateToLoad && Array.isArray(templateToLoad)) {
+      return templateToLoad;
+    }
+
+    // 2. Check for saved draft in localStorage
     try {
       const savedDraft = localStorage.getItem('promptcraft-draft');
       if (savedDraft) {
@@ -41,6 +52,8 @@ const Builder: React.FC = () => {
     } catch (error) {
       console.error("Failed to parse draft from localStorage", error);
     }
+    
+    // 3. Fallback to initial blocks
     return initialBlocks;
   });
 
@@ -64,6 +77,13 @@ const Builder: React.FC = () => {
       setOpenaiApiKey(savedKey);
     }
   }, []);
+
+  // Clear navigation state after loading a template to prevent reloading on refresh
+  useEffect(() => {
+    if (location.state?.blocks) {
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const handleApiKeyChange = (key: string) => {
     setOpenaiApiKey(key);
