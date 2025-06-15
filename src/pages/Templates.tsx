@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { 
   Search, 
   LayoutList,
-  Layout,
+  LayoutGrid,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { CustomTemplate, PromptBlock } from '@/types/builder';
@@ -21,6 +20,8 @@ import TemplateCard from '@/components/templates/TemplateCard';
 const Templates: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<'all' | TemplateDifficulty>('all');
+  const [sortBy, setSortBy] = useState<'rating' | 'uses' | 'title'>('rating');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
   const [previewingTemplate, setPreviewingTemplate] = useState<LibraryTemplate | CustomTemplate | null>(null);
@@ -137,14 +138,31 @@ const Templates: React.FC = () => {
   ];
 
   const categories = ['all', 'Creative Writing', 'Coding', 'Analysis', 'Education', 'Business', 'Image Generation'];
+  const difficulties: ('all' | TemplateDifficulty)[] = ['all', 'Beginner', 'Intermediate', 'Advanced'];
 
-  const filteredTemplates = templates.filter(template => {
-    const matchesSearch = template.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         template.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         template.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredAndSortedTemplates = useMemo(() => {
+    return templates
+      .filter(template => {
+        const matchesSearch =
+          template.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          template.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          template.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+        const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory;
+        const matchesDifficulty = selectedDifficulty === 'all' || template.difficulty === selectedDifficulty;
+        return matchesSearch && matchesCategory && matchesDifficulty;
+      })
+      .sort((a, b) => {
+        switch (sortBy) {
+          case 'uses':
+            return b.uses - a.uses;
+          case 'title':
+            return a.title.localeCompare(b.title);
+          case 'rating':
+          default:
+            return b.rating - a.rating;
+        }
+      });
+  }, [searchTerm, selectedCategory, selectedDifficulty, sortBy, templates]);
 
   const filteredCustomTemplates = customTemplates.filter(template => {
     const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -179,8 +197,8 @@ const Templates: React.FC = () => {
 
         {/* Search and Filters */}
         <Card className="glass p-6 mb-8">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex-grow min-w-[250px] relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50 w-4 h-4" />
               <Input
                 placeholder="Search templates..."
@@ -189,11 +207,11 @@ const Templates: React.FC = () => {
                 className="pl-10 glass border-white/20 text-white placeholder-white/50"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-4 flex-wrap items-center">
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-4 py-2 glass border border-white/20 rounded-lg text-white bg-transparent"
+                className="px-4 py-2 glass border border-white/20 rounded-lg text-white bg-transparent focus:ring-purple-500"
               >
                 {categories.map(category => (
                   <option key={category} value={category} className="bg-slate-800">
@@ -201,6 +219,29 @@ const Templates: React.FC = () => {
                   </option>
                 ))}
               </select>
+
+              <select
+                value={selectedDifficulty}
+                onChange={(e) => setSelectedDifficulty(e.target.value as 'all' | TemplateDifficulty)}
+                className="px-4 py-2 glass border border-white/20 rounded-lg text-white bg-transparent focus:ring-purple-500"
+              >
+                {difficulties.map(difficulty => (
+                  <option key={difficulty} value={difficulty} className="bg-slate-800">
+                    {difficulty === 'all' ? 'All Difficulties' : difficulty}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'rating' | 'uses' | 'title')}
+                className="px-4 py-2 glass border border-white/20 rounded-lg text-white bg-transparent focus:ring-purple-500"
+              >
+                <option value="rating" className="bg-slate-800">Sort by Rating</option>
+                <option value="uses" className="bg-slate-800">Sort by Uses</option>
+                <option value="title" className="bg-slate-800">Sort by Title</option>
+              </select>
+
               <Button
                 variant="outline"
                 size="icon"
@@ -208,7 +249,7 @@ const Templates: React.FC = () => {
                 className="border-white/20 text-white"
                 title={viewMode === 'grid' ? 'Switch to List View' : 'Switch to Grid View'}
               >
-                {viewMode === 'grid' ? <LayoutList className="w-4 h-4" /> : <Layout className="w-4 h-4" />}
+                {viewMode === 'grid' ? <LayoutList className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
               </Button>
             </div>
           </div>
@@ -249,7 +290,7 @@ const Templates: React.FC = () => {
 
         {/* Templates Grid/List */}
         <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
-          {filteredTemplates.map((template) =>
+          {filteredAndSortedTemplates.map((template) =>
             viewMode === 'grid' ? (
               <TemplateCard
                 key={template.id}
@@ -268,9 +309,9 @@ const Templates: React.FC = () => {
           )}
         </div>
 
-        {filteredTemplates.length === 0 && (
+        {filteredAndSortedTemplates.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-white/60 text-lg">No templates found matching your search criteria.</p>
+            <p className="text-white/60 text-lg">No templates found matching your criteria.</p>
           </div>
         )}
       </div>
