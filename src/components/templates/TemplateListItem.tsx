@@ -1,52 +1,43 @@
 
-```tsx
 import React from 'react';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Star, Eye, Copy } from 'lucide-react';
-import { LibraryTemplate } from '@/types/templates';
+import { Trash2, Eye, Copy } from 'lucide-react';
+import { CustomTemplate } from '@/types/builder';
 
 interface TemplateListItemProps {
-  template: LibraryTemplate;
-  onPreview: (template: LibraryTemplate) => void;
-  onUse: (template: LibraryTemplate) => void;
+  template: CustomTemplate;
+  onDelete: (id: string) => void;
+  onPreview: (template: CustomTemplate) => void;
+  onUse: (template: CustomTemplate) => void;
 }
 
-const TemplateListItem: React.FC<TemplateListItemProps> = ({ template, onPreview, onUse }) => {
+const TemplateListItem: React.FC<TemplateListItemProps> = ({ template, onDelete, onPreview, onUse }) => {
   return (
-    <Card className="glass p-4 hover:glow transition-all duration-300 flex items-center justify-between w-full">
-      <div className="flex-1 min-w-0 pr-4">
-        <h3 className="text-md font-semibold text-white truncate">{template.title}</h3>
-        <p className="text-sm text-white/70 truncate">{template.description}</p>
+    <div className="flex items-center justify-between p-4 glass rounded-lg hover:bg-white/5 transition-colors w-full">
+      <div className="flex flex-col gap-1">
+        <p className="font-semibold text-white">{template.name}</p>
+        <p className="text-sm text-white/60">
+          Created on {new Date(template.createdAt).toLocaleDateString()}
+        </p>
       </div>
-      
-      <div className="hidden md:flex items-center gap-2 mx-4 flex-shrink-0">
-        <Badge variant="secondary" className="text-xs">{template.category}</Badge>
-        <Badge
-          className={`text-xs ${
-            template.difficulty === 'Beginner' ? 'bg-green-600' :
-            template.difficulty === 'Intermediate' ? 'bg-yellow-600' : 'bg-red-600'
-          }`}
-        >
-          {template.difficulty}
-        </Badge>
-        <div className="flex items-center text-yellow-400">
-          <Star className="w-4 h-4 fill-current" />
-          <span className="text-sm ml-1">{template.rating}</span>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <span className="text-sm text-white/60 hidden lg:inline">{template.uses.toLocaleString()} uses</span>
+      <div className="flex items-center justify-end gap-2">
         <Button
-          size="sm"
+          size="icon"
+          variant="destructive"
+          onClick={() => onDelete(template.id)}
+          className="bg-red-900/50 hover:bg-red-900/80 border-red-500/30"
+          title="Delete Template"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+        <Button
+          size="icon"
           variant="outline"
           onClick={() => onPreview(template)}
           className="border-white/20 text-white hover:bg-white/10"
+          title="Preview Template"
         >
-          <Eye className="w-4 h-4 md:mr-1" />
-          <span className="hidden md:inline">Preview</span>
+          <Eye className="w-4 h-4" />
         </Button>
         <Button
           size="sm"
@@ -57,9 +48,8 @@ const TemplateListItem: React.FC<TemplateListItemProps> = ({ template, onPreview
           Use
         </Button>
       </div>
-    </Card>
+    </div>
   );
 };
 
 export default TemplateListItem;
-```

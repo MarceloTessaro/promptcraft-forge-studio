@@ -1,5 +1,3 @@
-
-```tsx
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
@@ -33,12 +31,12 @@ const initialBlocks: PromptBlock[] = [
 
 const Builder: React.FC = () => {
   const location = useLocation();
-  const templateToLoad = location.state?.blocks as PromptBlock[] | undefined;
+  const templateToLoad = location.state?.template as CustomTemplate | undefined;
 
   const [blocks, setBlocks] = useState<PromptBlock[]>(() => {
     // 1. Check for template from navigation state
-    if (templateToLoad && Array.isArray(templateToLoad)) {
-      return templateToLoad;
+    if (templateToLoad?.blocks && Array.isArray(templateToLoad.blocks)) {
+      return templateToLoad.blocks;
     }
 
     // 2. Check for saved draft in localStorage
@@ -81,7 +79,7 @@ const Builder: React.FC = () => {
 
   // Clear navigation state after loading a template to prevent reloading on refresh
   useEffect(() => {
-    if (location.state?.blocks) {
+    if (location.state?.template) {
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
@@ -311,4 +309,3 @@ const Builder: React.FC = () => {
 };
 
 export default Builder;
-```
