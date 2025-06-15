@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { PromptBlock } from '@/types/builder';
+import { PromptBlock, Template } from '@/types/builder';
 import Header from '@/components/builder/Header';
 import PromptBlocks from '@/components/builder/PromptBlocks';
 import SuggestionsSidebar from '@/components/builder/SuggestionsSidebar';
@@ -49,6 +48,9 @@ const Builder: React.FC = () => {
   const [variables, setVariables] = useState<string[]>([]);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [renderedPrompt, setRenderedPrompt] = useState('');
+
+  // State for Save Template Dialog
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
 
   // State for AI Preview
   const [openaiApiKey, setOpenaiApiKey] = useState('');
@@ -174,13 +176,39 @@ const Builder: React.FC = () => {
     });
   };
 
-  const savePrompt = () => {
+  const handleSaveClick = () => {
     // Note: We save the template with placeholders, not the rendered version.
     if (!assembledPrompt) return;
-    toast({
-      title: "Prompt salvo!",
-      description: "Seu rascunho foi salvo no armazenamento local do seu navegador.",
-    });
+    setIsSaveDialogOpen(true);
+  };
+
+  const handleSaveTemplate = (name: string) => {
+    try {
+      const newTemplate: Template = {
+        id: Date.now().toString(),
+        name,
+        blocks,
+        createdAt: new Date().toISOString(),
+      };
+
+      const existingTemplatesStr = localStorage.getItem('promptcraft-templates');
+      const existingTemplates: Template[] = existingTemplatesStr ? JSON.parse(existingTemplatesStr) : [];
+      
+      localStorage.setItem('promptcraft-templates', JSON.stringify([...existingTemplates, newTemplate]));
+      
+      toast({
+        title: "Template Salvo!",
+        description: `"${name}" foi salvo com sucesso.`,
+      });
+
+    } catch (error) {
+      console.error("Failed to save template", error);
+      toast({
+        title: "Erro ao Salvar Template",
+        description: "Houve um problema ao salvar seu template.",
+        variant: "destructive",
+      });
+    }
   };
 
   const clearDraft = () => {
@@ -241,7 +269,7 @@ const Builder: React.FC = () => {
           <PreviewPanel
             assembledPrompt={renderedPrompt}
             copyPrompt={copyPrompt}
-            savePrompt={savePrompt}
+            onSaveClick={handleSaveClick}
             variables={variables}
             variableValues={variableValues}
             onVariableChange={handleVariableChange}
@@ -251,6 +279,9 @@ const Builder: React.FC = () => {
             generatePreview={generatePreview}
             openaiApiKey={openaiApiKey}
             onApiKeyChange={handleApiKeyChange}
+            isSaveDialogOpen={isSaveDialogOpen}
+            onOpenSaveDialogChange={setIsSaveDialogOpen}
+            onSaveTemplate={handleSaveTemplate}
           />
         </div>
       </div>

@@ -5,3 +5,10 @@ export interface PromptBlock {
   content: string;
   placeholder: string;
 }
+
+export interface Template {
+  id: string;
+  name: string;
+  blocks: PromptBlock[];
+  createdAt: string;
+}

@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowRight, Copy, Save, Zap, Settings2, KeyRound, BrainCircuit, Loader2 } from 'lucide-react';
+import SaveTemplateDialog from './SaveTemplateDialog';
 
 interface PreviewPanelProps {
   assembledPrompt: string;
   copyPrompt: () => void;
-  savePrompt: () => void;
+  onSaveClick: () => void;
   variables: string[];
   variableValues: Record<string, string>;
   onVariableChange: (variable: string, value: string) => void;
@@ -19,12 +20,15 @@ interface PreviewPanelProps {
   generatePreview: () => void;
   openaiApiKey: string;
   onApiKeyChange: (key: string) => void;
+  isSaveDialogOpen: boolean;
+  onOpenSaveDialogChange: (isOpen: boolean) => void;
+  onSaveTemplate: (name: string) => void;
 }
 
 const PreviewPanel: React.FC<PreviewPanelProps> = ({ 
   assembledPrompt, 
   copyPrompt, 
-  savePrompt,
+  onSaveClick,
   variables,
   variableValues,
   onVariableChange,
@@ -33,7 +37,10 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
   previewError,
   generatePreview,
   openaiApiKey,
-  onApiKeyChange
+  onApiKeyChange,
+  isSaveDialogOpen,
+  onOpenSaveDialogChange,
+  onSaveTemplate
 }) => {
   const [apiKeyInput, setApiKeyInput] = useState('');
   const hasVariables = variables.length > 0;
@@ -85,7 +92,7 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
               <Button size="icon" onClick={copyPrompt} variant="secondary" disabled={promptIsEmpty}>
                 <Copy className="w-5 h-5" />
               </Button>
-              <Button size="icon" onClick={savePrompt} variant="default" disabled={promptIsEmpty}>
+              <Button size="icon" onClick={onSaveClick} variant="default" disabled={promptIsEmpty}>
                 <Save className="w-5 h-5" />
               </Button>
             </div>
@@ -187,6 +194,11 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
           </div>
         </Card>
       </div>
+       <SaveTemplateDialog 
+        isOpen={isSaveDialogOpen}
+        onOpenChange={onOpenSaveDialogChange}
+        onSave={onSaveTemplate}
+      />
     </div>
   );
 };
