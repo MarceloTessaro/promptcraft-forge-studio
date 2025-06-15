@@ -7,6 +7,8 @@ import PromptBlocks from '@/components/builder/PromptBlocks';
 import SuggestionsSidebar from '@/components/builder/SuggestionsSidebar';
 import PreviewPanel from '@/components/builder/PreviewPanel';
 import { ToastAction } from '@/components/ui/toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const initialBlocks: PromptBlock[] = [
   {
@@ -32,6 +34,7 @@ const initialBlocks: PromptBlock[] = [
 const Builder: React.FC = () => {
   const location = useLocation();
   const templateToLoad = location.state?.template as CustomTemplate | undefined;
+  const { user } = useAuth();
 
   const [blocks, setBlocks] = useState<PromptBlock[]>(() => {
     // 1. Check for template from navigation state
@@ -201,19 +204,26 @@ const Builder: React.FC = () => {
     setIsSaveDialogOpen(true);
   };
 
-  const handleSaveTemplate = (name: string) => {
+  const handleSaveTemplate = async (name: string) => {
     try {
-      const newTemplate: CustomTemplate = {
-        id: Date.now().toString(),
-        name,
-        blocks,
-        createdAt: new Date().toISOString(),
-      };
+      if (!user) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to save a template.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      const existingTemplatesStr = localStorage.getItem('promptcraft-templates');
-      const existingTemplates: CustomTemplate[] = existingTemplatesStr ? JSON.parse(existingTemplatesStr) : [];
-      
-      localStorage.setItem('promptcraft-templates', JSON.stringify([...existingTemplates, newTemplate]));
+      const { error } = await supabase.from('custom_templates').insert({
+        user_id: user.id,
+        name,
+        prompt: blocks,
+      });
+
+      if (error) {
+        throw error;
+      }
       
       toast({
         title: "Template Salvo!",
@@ -222,9 +232,10 @@ const Builder: React.FC = () => {
 
     } catch (error) {
       console.error("Failed to save template", error);
+      const errorMessage = error instanceof Error ? error.message : "Houve um problema ao salvar seu template.";
       toast({
         title: "Erro ao Salvar Template",
-        description: "Houve um problema ao salvar seu template.",
+        description: errorMessage,
         variant: "destructive",
       });
     }

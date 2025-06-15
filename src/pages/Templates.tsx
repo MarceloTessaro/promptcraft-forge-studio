@@ -16,6 +16,8 @@ import CustomTemplateCard from '@/components/templates/CustomTemplateCard';
 import TemplateGridItem from '@/components/templates/TemplateGridItem';
 import TemplateListItem from '@/components/templates/TemplateListItem';
 import TemplateCard from '@/components/templates/TemplateCard';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const Templates: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -26,22 +28,47 @@ const Templates: React.FC = () => {
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
   const [previewingTemplate, setPreviewingTemplate] = useState<LibraryTemplate | CustomTemplate | null>(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
-    try {
-      const savedTemplates = localStorage.getItem('promptcraft-templates');
-      if (savedTemplates) {
-        setCustomTemplates(JSON.parse(savedTemplates));
+    const fetchCustomTemplates = async () => {
+      if (!user) {
+        setCustomTemplates([]);
+        return;
       }
-    } catch (error) {
-      console.error("Failed to load custom templates", error);
-      toast({
-        title: "Error",
-        description: "Could not load your saved templates.",
-        variant: "destructive",
-      });
-    }
-  }, []);
+
+      try {
+        const { data, error } = await supabase
+          .from('custom_templates')
+          .select('id, name, prompt, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        if (data) {
+          const formattedTemplates: CustomTemplate[] = data.map(t => ({
+            id: t.id,
+            name: t.name,
+            blocks: t.prompt as PromptBlock[],
+            createdAt: t.created_at,
+          }));
+          setCustomTemplates(formattedTemplates);
+        }
+      } catch (error) {
+        console.error("Failed to load custom templates", error);
+        toast({
+          title: "Error",
+          description: "Could not load your saved templates.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchCustomTemplates();
+  }, [user]);
 
   const templates: LibraryTemplate[] = [
     {
@@ -170,17 +197,32 @@ const Templates: React.FC = () => {
   });
 
   const useTemplate = (template: LibraryTemplate | CustomTemplate) => {
-    navigate('/builder', { state: { blocks: template.blocks } });
+    navigate('/builder', { state: { blocks: 'blocks' in template ? template.blocks : [] } });
   };
 
-  const deleteTemplate = (id: string) => {
-    const updatedTemplates = customTemplates.filter(t => t.id !== id);
-    setCustomTemplates(updatedTemplates);
-    localStorage.setItem('promptcraft-templates', JSON.stringify(updatedTemplates));
-    toast({
-      title: "Template Deleted",
-      description: "The template has been removed.",
-    });
+  const deleteTemplate = async (id: string) => {
+    try {
+      const { error } = await supabase.from('custom_templates').delete().eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
+      setCustomTemplates(prevTemplates => prevTemplates.filter(t => t.id !== id));
+      
+      toast({
+        title: "Template Deleted",
+        description: "The template has been removed.",
+      });
+    } catch (error) {
+      console.error("Failed to delete template", error);
+      const errorMessage = error instanceof Error ? error.message : "Could not delete template.";
+      toast({
+        title: "Error Deleting Template",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
   };
 
   const previewTemplate = (template: LibraryTemplate | CustomTemplate) => {
