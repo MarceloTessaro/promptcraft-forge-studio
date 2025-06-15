@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,8 @@ import {
   ArrowRight,
   Lightbulb,
   Zap,
-  CheckCircle
+  CheckCircle,
+  X
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -23,21 +25,42 @@ interface PromptBlock {
   placeholder: string;
 }
 
+const initialBlocks: PromptBlock[] = [
+  {
+    id: '1',
+    type: 'context',
+    content: 'You are a social media manager for a new AI startup called "PromptCraft". Your tone is witty, informative, and slightly futuristic.',
+    placeholder: 'Provide context about the task or domain...'
+  },
+  {
+    id: '2',
+    type: 'task',
+    content: 'Write a tweet announcing our new "Visual Prompt Builder" feature. Mention it helps users build prompts 5x faster. Include the hashtag #AITools.',
+    placeholder: 'Clearly define what you want the AI to do...'
+  },
+  {
+    id: '3',
+    type: 'format',
+    content: 'Format the output as a single tweet, under 280 characters.',
+    placeholder: 'Specify the desired output format...'
+  }
+];
+
 const Builder: React.FC = () => {
-  const [blocks, setBlocks] = useState<PromptBlock[]>([
-    {
-      id: '1',
-      type: 'context',
-      content: '',
-      placeholder: 'Provide context about the task or domain...'
-    },
-    {
-      id: '2',
-      type: 'task',
-      content: '',
-      placeholder: 'Clearly define what you want the AI to do...'
+  const [blocks, setBlocks] = useState<PromptBlock[]>(() => {
+    try {
+      const savedDraft = localStorage.getItem('promptcraft-draft');
+      if (savedDraft) {
+        const parsedBlocks = JSON.parse(savedDraft);
+        if (Array.isArray(parsedBlocks) && parsedBlocks.length > 0) {
+          return parsedBlocks;
+        }
+      }
+    } catch (error) {
+      console.error("Failed to parse draft from localStorage", error);
     }
-  ]);
+    return initialBlocks;
+  });
 
   const [assembledPrompt, setAssembledPrompt] = useState('');
 
@@ -133,15 +156,8 @@ const Builder: React.FC = () => {
     return placeholders[type];
   };
 
-  const assemblePrompt = () => {
-    const prompt = blocks
-      .filter(block => block.content.trim())
-      .map(block => block.content.trim())
-      .join('\n\n');
-    setAssembledPrompt(prompt);
-  };
-
   const copyPrompt = () => {
+    if (!assembledPrompt) return;
     navigator.clipboard.writeText(assembledPrompt);
     toast({
       title: "Copied to clipboard",
@@ -150,14 +166,28 @@ const Builder: React.FC = () => {
   };
 
   const savePrompt = () => {
+    if (!assembledPrompt) return;
     toast({
       title: "Prompt saved",
       description: "Your prompt has been saved to your drafts.",
     });
   };
 
+  const clearDraft = () => {
+    setBlocks(initialBlocks);
+    toast({
+      title: "Draft Cleared",
+      description: "Your prompt has been reset to the default example.",
+    });
+  };
+
   React.useEffect(() => {
-    assemblePrompt();
+    const prompt = blocks
+      .filter(block => block.content.trim())
+      .map(block => block.content.trim())
+      .join('\n\n');
+    setAssembledPrompt(prompt);
+    localStorage.setItem('promptcraft-draft', JSON.stringify(blocks));
   }, [blocks]);
 
   return (
@@ -187,9 +217,14 @@ const Builder: React.FC = () => {
                     {blocks.length} blocks
                   </Badge>
                 </div>
-                <Button size="sm" className="btn-ghost">
-                  <Settings className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button size="icon" variant="ghost" onClick={clearDraft} className="text-white/70 hover:text-white">
+                    <X className="w-5 h-5" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="text-white/70 hover:text-white">
+                    <Settings className="w-5 h-5" />
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-6">
@@ -206,12 +241,12 @@ const Builder: React.FC = () => {
                           <span className="text-xs text-white/50">{blockType?.description}</span>
                         </div>
                         <Button
-                          size="sm"
+                          size="icon"
                           variant="ghost"
                           onClick={() => removeBlock(block.id)}
                           className="opacity-0 group-hover:opacity-100 transition-all duration-200 text-red-400 hover:text-red-300 hover:bg-red-500/10"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-5 h-5" />
                         </Button>
                       </div>
                       <Textarea
@@ -283,11 +318,11 @@ const Builder: React.FC = () => {
                   Preview
                 </h3>
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={copyPrompt} className="btn-secondary">
-                    <Copy className="w-4 h-4" />
+                  <Button size="icon" onClick={copyPrompt} variant="secondary">
+                    <Copy className="w-5 h-5" />
                   </Button>
-                  <Button size="sm" onClick={savePrompt} className="btn-primary">
-                    <Save className="w-4 h-4" />
+                  <Button size="icon" onClick={savePrompt} variant="default">
+                    <Save className="w-5 h-5" />
                   </Button>
                 </div>
               </div>

@@ -20,25 +20,25 @@ const Home: React.FC = () => {
     {
       icon: <Layout className="w-6 h-6" />,
       title: 'Visual Prompt Builder',
-      description: 'Drag-and-drop interface with smart building blocks for creating perfect prompts.',
+      description: 'Go from idea to production-ready prompt 5x faster with our intuitive drag-and-drop editor.',
       gradient: 'from-violet-500 to-purple-600'
     },
     {
       icon: <Code className="w-6 h-6" />,
       title: 'Template Library',
-      description: 'Access hundreds of proven templates for every AI model and use case.',
+      description: 'Save hours of work by starting with hundreds of proven templates for any task.',
       gradient: 'from-blue-500 to-cyan-600'
     },
     {
       icon: <Star className="w-6 h-6" />,
       title: 'Prompt Optimizer',
-      description: 'AI-powered analysis to improve clarity, specificity, and effectiveness.',
+      description: 'Boost your prompt’s performance by up to 40% with AI-powered suggestions.',
       gradient: 'from-amber-500 to-orange-600'
     },
     {
       icon: <Users className="w-6 h-6" />,
       title: 'Community Hub',
-      description: 'Share, discover, and collaborate on prompts with other AI professionals.',
+      description: 'Leverage the collective intelligence of top prompt engineers to solve problems faster.',
       gradient: 'from-emerald-500 to-teal-600'
     }
   ];
@@ -95,13 +95,13 @@ const Home: React.FC = () => {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link to="/builder">
-              <Button className="btn-primary group">
+              <Button className="group" variant="default" size="lg">
                 Start Building
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
             <Link to="/templates">
-              <Button className="btn-secondary">
+              <Button variant="secondary" size="lg">
                 Browse Templates
               </Button>
             </Link>
@@ -216,12 +216,12 @@ const Home: React.FC = () => {
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
               <Link to="/builder">
-                <Button className="btn-primary group">
+                <Button className="group" variant="default" size="lg">
                   Start Free Trial
                   <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
-              <Button className="btn-secondary">
+              <Button variant="secondary" size="lg">
                 View Pricing
               </Button>
             </div>
