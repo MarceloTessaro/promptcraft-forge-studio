@@ -9,6 +9,11 @@ import Header from '@/components/builder/Header';
 import { useTemplates } from '@/hooks/use-templates';
 import { SuggestionEngine, Suggestion } from '@/utils/suggestionEngine';
 import SmartSuggestions from '@/components/builder/SmartSuggestions';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { logger } from '@/utils/logger';
+import { sanitizeInput, validatePromptBlock } from '@/utils/validation';
+import { supabase } from '@/integrations/supabase/client';
 
 const Builder = () => {
   const [blocks, setBlocks] = useState<PromptBlock[]>([
@@ -31,79 +36,107 @@ const Builder = () => {
   const [aiPreview, setAiPreview] = useState('');
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState('');
-  const [openaiApiKey, setOpenaiApiKey] = useState(() => {
-    // Get stored key from local storage
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('openaiApiKey') || '';
-    }
-    return '';
-  });
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const { templates, saveTemplate, loadTemplate } = useTemplates();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const { handleError, handleAsyncError } = useErrorHandler();
 
-  useEffect(() => {
-    // Store key in local storage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('openaiApiKey', openaiApiKey);
+  const addBlock = useCallback((type: PromptBlock['type']) => {
+    try {
+      const newBlock = {
+        id: uuidv4(),
+        type: type,
+        content: '',
+        placeholder: `Enter your ${type} here...`,
+      };
+
+      if (!validatePromptBlock(newBlock)) {
+        throw new Error('Invalid block data');
+      }
+
+      setBlocks(prevBlocks => [...prevBlocks, newBlock]);
+      logger.info('Block added successfully', 'Builder', { type });
+    } catch (error) {
+      handleError(error, 'Adding block');
     }
-  }, [openaiApiKey]);
+  }, [handleError]);
 
-  const addBlock = (type: PromptBlock['type']) => {
-    setBlocks(prevBlocks => [...prevBlocks, {
-      id: uuidv4(),
-      type: type,
-      content: '',
-      placeholder: `Enter your ${type} here...`,
-    }]);
-  };
+  const removeBlock = useCallback((id: string) => {
+    try {
+      setBlocks(prevBlocks => {
+        const newBlocks = prevBlocks.filter(block => block.id !== id);
+        if (newBlocks.length === prevBlocks.length) {
+          throw new Error('Block not found');
+        }
+        return newBlocks;
+      });
+      logger.info('Block removed successfully', 'Builder', { id });
+    } catch (error) {
+      handleError(error, 'Removing block');
+    }
+  }, [handleError]);
 
-  const removeBlock = (id: string) => {
-    setBlocks(prevBlocks => prevBlocks.filter(block => block.id !== id));
-  };
+  const updateBlockContent = useCallback((id: string, content: string) => {
+    try {
+      const sanitizedContent = sanitizeInput(content, 5000);
+      
+      setBlocks(prevBlocks =>
+        prevBlocks.map(block =>
+          block.id === id ? { ...block, content: sanitizedContent } : block
+        )
+      );
+    } catch (error) {
+      handleError(error, 'Updating block content');
+    }
+  }, [handleError]);
 
-  const updateBlockContent = (id: string, content: string) => {
-    setBlocks(prevBlocks =>
-      prevBlocks.map(block =>
-        block.id === id ? { ...block, content: content } : block
-      )
-    );
-  };
+  const clearDraft = useCallback(() => {
+    try {
+      setBlocks([
+        {
+          id: uuidv4(),
+          type: 'context',
+          content: '',
+          placeholder: 'Provide background information to the AI...',
+        },
+        {
+          id: uuidv4(),
+          type: 'task',
+          content: '',
+          placeholder: 'Clearly define the task you want the AI to perform...',
+        },
+      ]);
+      logger.info('Draft cleared', 'Builder');
+    } catch (error) {
+      handleError(error, 'Clearing draft');
+    }
+  }, [handleError]);
 
-  const clearDraft = () => {
-    setBlocks([
-      {
-        id: uuidv4(),
-        type: 'context',
-        content: '',
-        placeholder: 'Provide background information to the AI...',
-      },
-      {
-        id: uuidv4(),
-        type: 'task',
-        content: '',
-        placeholder: 'Clearly define the task you want the AI to perform...',
-      },
-    ]);
-  };
-
-  const copyPrompt = () => {
-    navigator.clipboard.writeText(assembledPrompt);
-    toast({
-      title: "Prompt Copied",
-      description: "The assembled prompt has been copied to your clipboard.",
-    });
-  };
-
-  const handleVariableChange = (variable: string, value: string) => {
-    setVariableValues(prevValues => ({ ...prevValues, [variable]: value }));
-  };
-
-  const generatePreview = async () => {
-    if (!openaiApiKey) {
+  const copyPrompt = useCallback(() => {
+    handleAsyncError(async () => {
+      await navigator.clipboard.writeText(assembledPrompt);
       toast({
-        title: "API Key Required",
-        description: "Please enter your OpenAI API key to generate a preview.",
+        title: "Prompt Copied",
+        description: "The assembled prompt has been copied to your clipboard.",
+      });
+      logger.info('Prompt copied to clipboard', 'Builder');
+    }, 'Copying prompt');
+  }, [assembledPrompt, handleAsyncError]);
+
+  const handleVariableChange = useCallback((variable: string, value: string) => {
+    try {
+      const sanitizedValue = sanitizeInput(value, 1000);
+      setVariableValues(prevValues => ({ ...prevValues, [variable]: sanitizedValue }));
+    } catch (error) {
+      handleError(error, 'Updating variable');
+    }
+  }, [handleError]);
+
+  const generatePreview = useCallback(async () => {
+    if (!assembledPrompt.trim()) {
+      toast({
+        title: "Empty Prompt",
+        description: "Please add some content to your prompt blocks first.",
         variant: "destructive",
       });
       return;
@@ -114,23 +147,25 @@ const Builder = () => {
     setAiPreview('');
 
     try {
-      const response = await fetch('/api/openai', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt: assembledPrompt, apiKey: openaiApiKey }),
+      logger.info('Starting AI preview generation', 'Builder', { promptLength: assembledPrompt.length });
+
+      const { data, error } = await supabase.functions.invoke('openai-preview', {
+        body: { prompt: assembledPrompt }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate preview');
+      if (error) {
+        throw new Error(error.message || 'Failed to generate preview');
       }
 
-      const data = await response.json();
+      if (!data || !data.content) {
+        throw new Error('No content received from AI');
+      }
+
       setAiPreview(data.content);
+      logger.info('AI preview generated successfully', 'Builder');
+      
     } catch (error: any) {
-      console.error("OpenAI Error:", error);
+      logger.error('AI preview generation failed', 'Builder', error);
       setPreviewError(error.message);
       toast({
         title: "Preview Generation Failed",
@@ -140,125 +175,151 @@ const Builder = () => {
     } finally {
       setIsPreviewLoading(false);
     }
-  };
+  }, [assembledPrompt]);
 
-  const handleSaveTemplate = async (name: string) => {
-    await saveTemplate(name, blocks);
-  };
+  const handleSaveTemplate = useCallback(async (name: string) => {
+    try {
+      const sanitizedName = sanitizeInput(name, 100);
+      if (!sanitizedName) {
+        throw new Error('Template name is required');
+      }
+      
+      await saveTemplate(sanitizedName, blocks);
+      logger.info('Template saved successfully', 'Builder', { name: sanitizedName });
+    } catch (error) {
+      handleError(error, 'Saving template');
+    }
+  }, [blocks, saveTemplate, handleError]);
 
   const assemblePrompt = useCallback(() => {
-    let prompt = '';
-    let vars: string[] = [];
+    try {
+      let prompt = '';
+      let vars: string[] = [];
 
-    blocks.forEach(block => {
-      const content = block.content;
-      const matches = content.matchAll(/{{(.*?)}}/g);
+      blocks.forEach(block => {
+        const content = block.content;
+        const matches = content.matchAll(/{{(.*?)}}/g);
 
-      let blockContent = content;
-      if (matches) {
-        for (const match of matches) {
-          const variable = match[1].trim();
-          vars.push(variable);
+        let blockContent = content;
+        if (matches) {
+          for (const match of matches) {
+            const variable = match[1].trim();
+            vars.push(variable);
+          }
+          blockContent = content.replace(/{{(.*?)}}/g, (match, variable) => {
+            const varName = variable.trim();
+            return variableValues[varName] || `{{${varName}}}`;
+          });
         }
-        blockContent = content.replace(/{{(.*?)}}/g, (match, variable) => {
-          const varName = variable.trim();
-          return variableValues[varName] || `{{${varName}}}`;
-        });
-      }
-      prompt += blockContent + '\n\n';
-    });
+        prompt += blockContent + '\n\n';
+      });
 
-    setAssembledPrompt(prompt.trim());
-    setVariables([...new Set(vars)]);
-    
-    // Generate suggestions after assembling prompt
-    const newSuggestions = SuggestionEngine.generateSuggestions(blocks);
-    setSuggestions(newSuggestions);
-  }, [blocks, variableValues]);
+      setAssembledPrompt(prompt.trim());
+      setVariables([...new Set(vars)]);
+      
+      // Generate suggestions after assembling prompt
+      const newSuggestions = SuggestionEngine.generateSuggestions(blocks);
+      setSuggestions(newSuggestions);
+    } catch (error) {
+      handleError(error, 'Assembling prompt');
+    }
+  }, [blocks, variableValues, handleError]);
 
   useEffect(() => {
     assemblePrompt();
   }, [blocks, variableValues, assemblePrompt]);
 
-  const handleApplySuggestion = (suggestion: Suggestion) => {
-    // Handle different types of suggestions
-    switch (suggestion.type) {
-      case 'addition':
-        if (suggestion.category === 'structure') {
-          if (suggestion.id === 'missing-context') {
-            addBlock('context');
-          } else if (suggestion.id === 'missing-task') {
-            addBlock('task');
-          } else if (suggestion.id === 'missing-format') {
-            addBlock('format');
+  const handleApplySuggestion = useCallback((suggestion: Suggestion) => {
+    try {
+      // Handle different types of suggestions
+      switch (suggestion.type) {
+        case 'addition':
+          if (suggestion.category === 'structure') {
+            if (suggestion.id === 'missing-context') {
+              addBlock('context');
+            } else if (suggestion.id === 'missing-task') {
+              addBlock('task');
+            } else if (suggestion.id === 'missing-format') {
+              addBlock('format');
+            }
+          } else if (suggestion.category === 'examples') {
+            addBlock('examples');
+          } else if (suggestion.category === 'constraints') {
+            addBlock('constraints');
           }
-        } else if (suggestion.category === 'examples') {
-          addBlock('examples');
-        } else if (suggestion.category === 'constraints') {
-          addBlock('constraints');
-        }
-        break;
-      case 'improvement':
-        // For improvements, we can highlight the relevant block
-        if (suggestion.blockId) {
-          // This could trigger a scroll to the block or highlight it
-          console.log(`Focus on block: ${suggestion.blockId}`);
-        }
-        break;
+          break;
+        case 'improvement':
+          // For improvements, we can highlight the relevant block
+          if (suggestion.blockId) {
+            logger.debug('Focus on block', 'Builder', { blockId: suggestion.blockId });
+          }
+          break;
+      }
+      
+      toast({
+        title: "Suggestion Applied",
+        description: suggestion.action || "Suggestion implemented successfully.",
+      });
+
+      logger.info('Suggestion applied', 'Builder', { suggestionId: suggestion.id });
+    } catch (error) {
+      handleError(error, 'Applying suggestion');
     }
-    
-    toast({
-      title: "Sugestão Aplicada",
-      description: suggestion.action || "Sugestão implementada com sucesso.",
-    });
-  };
+  }, [addBlock, handleError]);
 
   return (
-    <div className="min-h-screen py-8">
-      <div className="container mx-auto px-4">
-        <Header 
-          saveTemplate={saveTemplate} 
-          loadTemplate={loadTemplate}
-          templates={templates}
-        />
-        
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-8">
-          <PromptBlocks
-            blocks={blocks}
-            removeBlock={removeBlock}
-            updateBlockContent={updateBlockContent}
-            addBlock={addBlock}
-            clearDraft={clearDraft}
+    <ErrorBoundary onError={(error, errorInfo) => logger.error('Builder component error', 'Builder', { error, errorInfo })}>
+      <div className="min-h-screen py-8">
+        <div className="container mx-auto px-4">
+          <Header 
+            saveTemplate={saveTemplate} 
+            loadTemplate={loadTemplate}
+            templates={templates}
           />
           
-          {/* Smart Suggestions */}
-          <div className="space-y-6">
-            <SmartSuggestions 
-              suggestions={suggestions}
-              onApplySuggestion={handleApplySuggestion}
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-8">
+            <ErrorBoundary>
+              <PromptBlocks
+                blocks={blocks}
+                removeBlock={removeBlock}
+                updateBlockContent={updateBlockContent}
+                addBlock={addBlock}
+                clearDraft={clearDraft}
+              />
+            </ErrorBoundary>
+            
+            <ErrorBoundary>
+              <div className="space-y-6">
+                <SmartSuggestions 
+                  suggestions={suggestions}
+                  onApplySuggestion={handleApplySuggestion}
+                />
+              </div>
+            </ErrorBoundary>
+            
+            <ErrorBoundary>
+              <PreviewPanel
+                assembledPrompt={assembledPrompt}
+                copyPrompt={copyPrompt}
+                onSaveClick={() => setIsSaveDialogOpen(true)}
+                variables={variables}
+                variableValues={variableValues}
+                onVariableChange={handleVariableChange}
+                aiPreview={aiPreview}
+                isPreviewLoading={isPreviewLoading}
+                previewError={previewError}
+                generatePreview={generatePreview}
+                openaiApiKey="" // No longer needed with Edge Function
+                onApiKeyChange={() => {}} // No longer needed
+                isSaveDialogOpen={isSaveDialogOpen}
+                onOpenSaveDialogChange={setIsSaveDialogOpen}
+                onSaveTemplate={handleSaveTemplate}
+              />
+            </ErrorBoundary>
           </div>
-          
-          <PreviewPanel
-            assembledPrompt={assembledPrompt}
-            copyPrompt={copyPrompt}
-            onSaveClick={() => setIsSaveDialogOpen(true)}
-            variables={variables}
-            variableValues={variableValues}
-            onVariableChange={handleVariableChange}
-            aiPreview={aiPreview}
-            isPreviewLoading={isPreviewLoading}
-            previewError={previewError}
-            generatePreview={generatePreview}
-            openaiApiKey={openaiApiKey}
-            onApiKeyChange={setOpenaiApiKey}
-            isSaveDialogOpen={isSaveDialogOpen}
-            onOpenSaveDialogChange={setIsSaveDialogOpen}
-            onSaveTemplate={handleSaveTemplate}
-          />
         </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 };
 
