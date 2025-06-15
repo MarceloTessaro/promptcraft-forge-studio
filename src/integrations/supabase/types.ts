@@ -77,6 +77,33 @@ export type Database = {
           },
         ]
       }
+      pet_backups: {
+        Row: {
+          created_at: string
+          device_id: string
+          encrypted_data: string
+          id: string
+          recovery_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          encrypted_data: string
+          id?: string
+          recovery_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          encrypted_data?: string
+          id?: string
+          recovery_code?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pets: {
         Row: {
           age: number

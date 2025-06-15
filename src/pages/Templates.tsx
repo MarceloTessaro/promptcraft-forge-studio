@@ -52,7 +52,7 @@ const Templates: React.FC = () => {
           const formattedTemplates: CustomTemplate[] = data.map(t => ({
             id: t.id,
             name: t.name,
-            blocks: t.prompt as PromptBlock[], // Cast Json to PromptBlock[]
+            blocks: (t.prompt as unknown) as PromptBlock[], // Proper type conversion
             createdAt: t.created_at,
           }));
           setCustomTemplates(formattedTemplates);
