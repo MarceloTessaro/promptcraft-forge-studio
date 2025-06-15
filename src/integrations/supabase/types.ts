@@ -134,6 +134,33 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          experience_level: string | null
+          full_name: string | null
+          id: string
+          specialty: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          experience_level?: string | null
+          full_name?: string | null
+          id: string
+          specialty?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          experience_level?: string | null
+          full_name?: string | null
+          id?: string
+          specialty?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       reminders: {
         Row: {
           created_at: string

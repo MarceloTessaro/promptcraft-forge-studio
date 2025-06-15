@@ -1,145 +1,139 @@
-
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useCallback, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { PromptBlock, CustomTemplate } from '@/types/builder';
-import Header from '@/components/builder/Header';
-import PromptBlocks from '@/components/builder/PromptBlocks';
-import SuggestionsSidebar from '@/components/builder/SuggestionsSidebar';
-import PreviewPanel from '@/components/builder/PreviewPanel';
-import { ToastAction } from '@/components/ui/toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
+import { PromptBlock } from '@/types/builder';
+import { PromptBlocks } from '@/components/builder/PromptBlocks';
+import { PreviewPanel } from '@/components/builder/PreviewPanel';
+import { Header } from '@/components/builder/Header';
+import { useTemplates } from '@/hooks/use-templates';
+import { SuggestionEngine, Suggestion } from '@/utils/suggestionEngine';
+import SmartSuggestions from '@/components/builder/SmartSuggestions';
 
-const initialBlocks: PromptBlock[] = [
-  {
-    id: '1',
-    type: 'context',
-    content: 'You are a social media manager for a new AI startup called "PromptCraft". Your tone is witty, informative, and slightly futuristic.',
-    placeholder: 'Provide context about the task or domain...'
-  },
-  {
-    id: '2',
-    type: 'task',
-    content: 'Write a tweet announcing our new "{{feature_name}}" feature. Mention it helps users build prompts {{speed_improvement}}x faster. Include the hashtag #{{hashtag}}.',
-    placeholder: 'Clearly define what you want the AI to do...'
-  },
-  {
-    id: '3',
-    type: 'format',
-    content: 'Format the output as a single tweet, under 280 characters.',
-    placeholder: 'Specify the desired output format...'
-  }
-];
-
-const Builder: React.FC = () => {
-  const location = useLocation();
-  const templateToLoad = location.state?.template as CustomTemplate | undefined;
-  const { user } = useAuth();
-
-  const [blocks, setBlocks] = useState<PromptBlock[]>(() => {
-    // 1. Check for template from navigation state
-    if (templateToLoad?.blocks && Array.isArray(templateToLoad.blocks)) {
-      return templateToLoad.blocks;
-    }
-
-    // 2. Check for saved draft in localStorage
-    try {
-      const savedDraft = localStorage.getItem('promptcraft-draft');
-      if (savedDraft) {
-        const parsedBlocks = JSON.parse(savedDraft);
-        if (Array.isArray(parsedBlocks) && parsedBlocks.length > 0) {
-          return parsedBlocks;
-        }
-      }
-    } catch (error) {
-      console.error("Failed to parse draft from localStorage", error);
-    }
-    
-    // 3. Fallback to initial blocks
-    return initialBlocks;
-  });
-
+const Builder = () => {
+  const [blocks, setBlocks] = useState<PromptBlock[]>([
+    {
+      id: uuidv4(),
+      type: 'context',
+      content: '',
+      placeholder: 'Provide background information to the AI...',
+    },
+    {
+      id: uuidv4(),
+      type: 'task',
+      content: '',
+      placeholder: 'Clearly define the task you want the AI to perform...',
+    },
+  ]);
   const [assembledPrompt, setAssembledPrompt] = useState('');
   const [variables, setVariables] = useState<string[]>([]);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
-  const [renderedPrompt, setRenderedPrompt] = useState('');
-
-  // State for Save Template Dialog
-  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
-
-  // State for AI Preview
-  const [openaiApiKey, setOpenaiApiKey] = useState('');
   const [aiPreview, setAiPreview] = useState('');
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState('');
+  const [openaiApiKey, setOpenaiApiKey] = useState(() => {
+    // Get stored key from local storage
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('openaiApiKey') || '';
+    }
+    return '';
+  });
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const { templates, saveTemplate, loadTemplate } = useTemplates();
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
   useEffect(() => {
-    const savedKey = localStorage.getItem('promptcraft-openai-apikey');
-    if (savedKey) {
-      setOpenaiApiKey(savedKey);
+    // Store key in local storage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('openaiApiKey', openaiApiKey);
     }
-  }, []);
+  }, [openaiApiKey]);
 
-  // Clear navigation state after loading a template to prevent reloading on refresh
-  useEffect(() => {
-    if (location.state?.template) {
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state]);
+  const addBlock = (type: PromptBlock['type']) => {
+    setBlocks(prevBlocks => [...prevBlocks, {
+      id: uuidv4(),
+      type: type,
+      content: '',
+      placeholder: `Enter your ${type} here...`,
+    }]);
+  };
 
-  const handleApiKeyChange = (key: string) => {
-    setOpenaiApiKey(key);
-    localStorage.setItem('promptcraft-openai-apikey', key);
+  const removeBlock = (id: string) => {
+    setBlocks(prevBlocks => prevBlocks.filter(block => block.id !== id));
+  };
+
+  const updateBlockContent = (id: string, content: string) => {
+    setBlocks(prevBlocks =>
+      prevBlocks.map(block =>
+        block.id === id ? { ...block, content: content } : block
+      )
+    );
+  };
+
+  const clearDraft = () => {
+    setBlocks([
+      {
+        id: uuidv4(),
+        type: 'context',
+        content: '',
+        placeholder: 'Provide background information to the AI...',
+      },
+      {
+        id: uuidv4(),
+        type: 'task',
+        content: '',
+        placeholder: 'Clearly define the task you want the AI to perform...',
+      },
+    ]);
+  };
+
+  const copyPrompt = () => {
+    navigator.clipboard.writeText(assembledPrompt);
     toast({
-      title: "API Key Saved",
-      description: "Your OpenAI API key has been saved in local storage.",
+      title: "Prompt Copied",
+      description: "The assembled prompt has been copied to your clipboard.",
     });
+  };
+
+  const handleVariableChange = (variable: string, value: string) => {
+    setVariableValues(prevValues => ({ ...prevValues, [variable]: value }));
   };
 
   const generatePreview = async () => {
     if (!openaiApiKey) {
-      setPreviewError("Please provide your OpenAI API key to generate a preview.");
       toast({
-        title: "OpenAI API Key Required",
-        description: "An API key is needed to generate previews.",
+        title: "API Key Required",
+        description: "Please enter your OpenAI API key to generate a preview.",
         variant: "destructive",
       });
       return;
     }
-    if (!renderedPrompt) return;
 
     setIsPreviewLoading(true);
-    setAiPreview('');
     setPreviewError('');
+    setAiPreview('');
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('/api/openai', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiApiKey}`
         },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [{ role: 'user', content: renderedPrompt }],
-          max_tokens: 250,
-        })
+        body: JSON.stringify({ prompt: assembledPrompt, apiKey: openaiApiKey }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error?.message || 'Failed to fetch AI preview.');
+        throw new Error(errorData.error || 'Failed to generate preview');
       }
 
       const data = await response.json();
-      setAiPreview(data.choices[0].message.content);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-      setPreviewError(errorMessage);
+      setAiPreview(data.content);
+    } catch (error: any) {
+      console.error("OpenAI Error:", error);
+      setPreviewError(error.message);
       toast({
-        title: "Error Generating Preview",
-        description: errorMessage,
+        title: "Preview Generation Failed",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
@@ -147,148 +141,87 @@ const Builder: React.FC = () => {
     }
   };
 
-  const getPlaceholder = (type: PromptBlock['type']): string => {
-    const placeholders = {
-      context: 'Provide context about the task or domain...',
-      task: 'Clearly define what you want the AI to do...',
-      format: 'Specify the desired output format...',
-      constraints: 'Add any limitations or rules...',
-      examples: 'Provide example inputs and outputs...'
-    };
-    return placeholders[type];
-  };
-
-  const addBlock = (type: PromptBlock['type']) => {
-    const newBlock: PromptBlock = {
-      id: Date.now().toString(),
-      type,
-      content: '',
-      placeholder: getPlaceholder(type)
-    };
-    setBlocks([...blocks, newBlock]);
-  };
-
-  const removeBlock = (id: string) => {
-    setBlocks(blocks.filter(block => block.id !== id));
-  };
-
-  const updateBlockContent = (id: string, content: string) => {
-    setBlocks(blocks.map(block => 
-      block.id === id ? { ...block, content } : block
-    ));
-  };
-
-  const handleVariableChange = (variable: string, value: string) => {
-    setVariableValues(prev => ({ ...prev, [variable]: value }));
-  };
-
-  const copyPrompt = () => {
-    if (!renderedPrompt) return;
-    navigator.clipboard.writeText(renderedPrompt);
-    toast({
-      title: "Copiado para a área de transferência!",
-      description: "Seu prompt está pronto para ser colado em sua ferramenta de IA favorita.",
-      action: (
-        <ToastAction
-          altText="Test on ChatGPT"
-          onClick={() => window.open("https://chat.openai.com", "_blank")}
-        >
-          Testar no ChatGPT
-        </ToastAction>
-      ),
-    });
-  };
-
-  const handleSaveClick = () => {
-    // Note: We save the template with placeholders, not the rendered version.
-    if (!assembledPrompt) return;
-    setIsSaveDialogOpen(true);
-  };
-
   const handleSaveTemplate = async (name: string) => {
-    try {
-      if (!user) {
-        toast({
-          title: "Authentication Error",
-          description: "You must be logged in to save a template.",
-          variant: "destructive",
+    await saveTemplate(name, blocks);
+  };
+
+  const assemblePrompt = useCallback(() => {
+    let prompt = '';
+    let vars: string[] = [];
+
+    blocks.forEach(block => {
+      const content = block.content;
+      const matches = content.matchAll(/{{(.*?)}}/g);
+
+      let blockContent = content;
+      if (matches) {
+        for (const match of matches) {
+          const variable = match[1].trim();
+          vars.push(variable);
+        }
+        blockContent = content.replace(/{{(.*?)}}/g, (match, variable) => {
+          const varName = variable.trim();
+          return variableValues[varName] || `{{${varName}}}`;
         });
-        return;
       }
-
-      const { error } = await supabase.from('custom_templates').insert({
-        user_id: user.id,
-        name,
-        prompt: blocks as any, // Cast to any to satisfy Json type
-      });
-
-      if (error) {
-        throw error;
-      }
-      
-      toast({
-        title: "Template Salvo!",
-        description: `"${name}" foi salvo com sucesso.`,
-      });
-
-    } catch (error) {
-      console.error("Failed to save template", error);
-      const errorMessage = error instanceof Error ? error.message : "Houve um problema ao salvar seu template.";
-      toast({
-        title: "Erro ao Salvar Template",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const clearDraft = () => {
-    setBlocks(initialBlocks);
-    toast({
-      title: "Draft Cleared",
-      description: "Your prompt has been reset to the default example.",
+      prompt += blockContent + '\n\n';
     });
-  };
 
-  // Effect to assemble prompt from blocks and extract variables
-  useEffect(() => {
-    const prompt = blocks
-      .filter(block => block.content.trim())
-      .map(block => block.content.trim())
-      .join('\n\n');
-    setAssembledPrompt(prompt);
-    localStorage.setItem('promptcraft-draft', JSON.stringify(blocks));
-
-    // Extract variables using regex
-    const foundVariables = prompt.match(/\{\{([^}]+)\}\}/g) || [];
-    const uniqueVariables = [...new Set(foundVariables.map(v => v.replace(/[{}]/g, '')))];
-    setVariables(uniqueVariables);
+    setAssembledPrompt(prompt.trim());
+    setVariables([...new Set(vars)]);
     
-    // Preserve existing values, remove old ones
-    setVariableValues(currentValues => {
-      const newValues: Record<string, string> = {};
-      uniqueVariables.forEach(v => {
-        newValues[v] = currentValues[v] || '';
-      });
-      return newValues;
-    });
+    // Generate suggestions after assembling prompt
+    const newSuggestions = SuggestionEngine.generateSuggestions(blocks);
+    setSuggestions(newSuggestions);
+  }, [blocks, variableValues]);
 
-  }, [blocks]);
-
-  // Effect to render the final prompt when variables change
   useEffect(() => {
-    const finalPrompt = variables.reduce((prompt, variable) => {
-      const value = variableValues[variable] || `{{${variable}}}`;
-      return prompt.replace(new RegExp(`\\{\\{${variable}\\}\\}`, 'g'), value);
-    }, assembledPrompt);
-    setRenderedPrompt(finalPrompt);
-  }, [assembledPrompt, variables, variableValues]);
+    assemblePrompt();
+  }, [blocks, variableValues, assemblePrompt]);
+
+  const handleApplySuggestion = (suggestion: Suggestion) => {
+    // Handle different types of suggestions
+    switch (suggestion.type) {
+      case 'addition':
+        if (suggestion.category === 'structure') {
+          if (suggestion.id === 'missing-context') {
+            addBlock('context');
+          } else if (suggestion.id === 'missing-task') {
+            addBlock('task');
+          } else if (suggestion.id === 'missing-format') {
+            addBlock('format');
+          }
+        } else if (suggestion.category === 'examples') {
+          addBlock('examples');
+        } else if (suggestion.category === 'constraints') {
+          addBlock('constraints');
+        }
+        break;
+      case 'improvement':
+        // For improvements, we can highlight the relevant block
+        if (suggestion.blockId) {
+          // This could trigger a scroll to the block or highlight it
+          console.log(`Focus on block: ${suggestion.blockId}`);
+        }
+        break;
+    }
+    
+    toast({
+      title: "Sugestão Aplicada",
+      description: suggestion.action || "Sugestão implementada com sucesso.",
+    });
+  };
 
   return (
     <div className="min-h-screen py-8">
       <div className="container mx-auto px-4">
-        <Header />
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <Header 
+          saveTemplate={saveTemplate} 
+          loadTemplate={loadTemplate}
+          templates={templates}
+        />
+        
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-8">
           <PromptBlocks
             blocks={blocks}
             removeBlock={removeBlock}
@@ -296,11 +229,19 @@ const Builder: React.FC = () => {
             addBlock={addBlock}
             clearDraft={clearDraft}
           />
-          <SuggestionsSidebar />
+          
+          {/* Smart Suggestions */}
+          <div className="space-y-6">
+            <SmartSuggestions 
+              suggestions={suggestions}
+              onApplySuggestion={handleApplySuggestion}
+            />
+          </div>
+          
           <PreviewPanel
-            assembledPrompt={renderedPrompt}
+            assembledPrompt={assembledPrompt}
             copyPrompt={copyPrompt}
-            onSaveClick={handleSaveClick}
+            onSaveClick={() => setIsSaveDialogOpen(true)}
             variables={variables}
             variableValues={variableValues}
             onVariableChange={handleVariableChange}
@@ -309,7 +250,7 @@ const Builder: React.FC = () => {
             previewError={previewError}
             generatePreview={generatePreview}
             openaiApiKey={openaiApiKey}
-            onApiKeyChange={handleApiKeyChange}
+            onApiKeyChange={setOpenaiApiKey}
             isSaveDialogOpen={isSaveDialogOpen}
             onOpenSaveDialogChange={setIsSaveDialogOpen}
             onSaveTemplate={handleSaveTemplate}
