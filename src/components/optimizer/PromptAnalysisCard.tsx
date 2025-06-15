@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle, AlertTriangle, Lightbulb, TrendingUp } from 'lucide-react';
-import { PromptAnalysis } from '@/types/optimizer';
+import { DetailedAnalysis } from '@/types/optimizer';
 
 interface PromptAnalysisCardProps {
-  analysis: PromptAnalysis;
+  analysis: DetailedAnalysis;
 }
 
 const PromptAnalysisCard: React.FC<PromptAnalysisCardProps> = ({ analysis }) => {

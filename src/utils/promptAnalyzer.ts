@@ -1,18 +1,20 @@
-
-import { PromptAnalysis, OptimizationSuggestion } from '@/types/optimizer';
+import { PromptAnalysis, OptimizationSuggestion, DetailedAnalysis } from '@/types/optimizer';
 
 export class PromptAnalyzer {
-  static analyzePrompt(prompt: string): PromptAnalysis {
+  static analyzePrompt(prompt: string): DetailedAnalysis {
     const metrics = this.calculateMetrics(prompt);
     const score = this.calculateOverallScore(metrics);
     const analysis = this.generateAnalysis(prompt, metrics);
-    const suggestions = this.generateOptimizationSuggestions(prompt, metrics);
+    const optimizationSuggestions = this.generateOptimizationSuggestions(prompt, metrics);
 
     return {
       score,
       ...analysis,
       metrics,
-      suggestions
+      optimizationSuggestions,
+      wordCount: prompt.split(/\s+/).filter(word => word.length > 0).length,
+      readabilityScore: this.calculateReadabilityScore(prompt),
+      improvementAreas: this.getImprovementAreas(metrics)
     };
   }
 
@@ -268,7 +270,30 @@ export class PromptAnalyzer {
     return replacements[ambiguousTerm.toLowerCase()] || 'specifically';
   }
 
-  static generateOptimizedPrompt(originalPrompt: string, analysis: PromptAnalysis): string {
+  private static calculateReadabilityScore(prompt: string): number {
+    const sentences = prompt.split(/[.!?]+/).filter(s => s.trim());
+    const words = prompt.split(/\s+/).filter(word => word.length > 0);
+    const avgWordsPerSentence = words.length / sentences.length;
+    
+    // Simple readability score based on sentence length
+    if (avgWordsPerSentence <= 15) return 90;
+    if (avgWordsPerSentence <= 20) return 75;
+    if (avgWordsPerSentence <= 25) return 60;
+    return 45;
+  }
+
+  private static getImprovementAreas(metrics: any): string[] {
+    const areas: string[] = [];
+    
+    if (metrics.clarity < 70) areas.push('Clarity');
+    if (metrics.specificity < 70) areas.push('Specificity');
+    if (metrics.structure < 70) areas.push('Structure');
+    if (metrics.completeness < 70) areas.push('Completeness');
+    
+    return areas;
+  }
+
+  static generateOptimizedPrompt(originalPrompt: string, analysis: DetailedAnalysis): string {
     let optimized = originalPrompt;
     
     // Apply structural improvements

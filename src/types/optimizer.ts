@@ -21,8 +21,18 @@ export interface OptimizationSuggestion {
   impact: 'low' | 'medium' | 'high';
 }
 
-export interface DetailedAnalysis extends PromptAnalysis {
-  suggestions: OptimizationSuggestion[];
+export interface DetailedAnalysis {
+  score: number;
+  strengths: string[];
+  weaknesses: string[];
+  suggestions: string[];
+  metrics: {
+    clarity: number;
+    specificity: number;
+    structure: number;
+    completeness: number;
+  };
+  optimizationSuggestions: OptimizationSuggestion[];
   wordCount: number;
   readabilityScore: number;
   improvementAreas: string[];

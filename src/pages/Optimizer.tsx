@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,14 +16,14 @@ import {
   Lightbulb
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { PromptAnalysis, OptimizationSuggestion } from '@/types/optimizer';
+import { DetailedAnalysis, OptimizationSuggestion } from '@/types/optimizer';
 import { PromptAnalyzer } from '@/utils/promptAnalyzer';
 import PromptAnalysisCard from '@/components/optimizer/PromptAnalysisCard';
 import OptimizationSuggestions from '@/components/optimizer/OptimizationSuggestions';
 
 const Optimizer = () => {
   const [inputPrompt, setInputPrompt] = useState('');
-  const [analysis, setAnalysis] = useState<PromptAnalysis | null>(null);
+  const [analysis, setAnalysis] = useState<DetailedAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [optimizedPrompt, setOptimizedPrompt] = useState('');
   const [optimizationSuggestions, setOptimizationSuggestions] = useState<OptimizationSuggestion[]>([]);
@@ -46,9 +45,8 @@ const Optimizer = () => {
       const promptAnalysis = PromptAnalyzer.analyzePrompt(inputPrompt);
       setAnalysis(promptAnalysis);
       
-      // Generate optimization suggestions
-      const suggestions = promptAnalysis.suggestions || [];
-      setOptimizationSuggestions(suggestions);
+      // Set optimization suggestions from the analysis
+      setOptimizationSuggestions(promptAnalysis.optimizationSuggestions);
       
       // Generate optimized prompt
       const optimized = PromptAnalyzer.generateOptimizedPrompt(inputPrompt, promptAnalysis);
@@ -148,7 +146,7 @@ const Optimizer = () => {
           </h1>
           <p className="text-white/80 text-lg max-w-2xl mx-auto">
             Analise e otimize seus prompts para obter melhores resultados com IA. 
-            Receba feedback detalhado e sugestões de melhoria personalizadas.
+            Receba feedback detalhado e sugerencias de melhoria personalizadas.
           </p>
         </div>
 
