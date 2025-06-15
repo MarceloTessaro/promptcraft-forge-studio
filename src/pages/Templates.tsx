@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Template as CustomTemplate, PromptBlock } from '@/types/builder';
+import TemplatePreviewDialog from '@/components/templates/TemplatePreviewDialog';
 
 interface Template {
   id: string;
@@ -35,6 +35,7 @@ const Templates: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
+  const [previewingTemplate, setPreviewingTemplate] = useState<Template | CustomTemplate | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -157,11 +158,7 @@ const Templates: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const useTemplate = (template: Template) => {
-    navigate('/builder', { state: { blocks: template.blocks } });
-  };
-
-  const useMyTemplate = (template: CustomTemplate) => {
+  const useTemplate = (template: Template | CustomTemplate) => {
     navigate('/builder', { state: { blocks: template.blocks } });
   };
 
@@ -175,11 +172,8 @@ const Templates: React.FC = () => {
     });
   };
 
-  const previewTemplate = (template: Template) => {
-    toast({
-      title: "Preview",
-      description: template.description,
-    });
+  const previewTemplate = (template: Template | CustomTemplate) => {
+    setPreviewingTemplate(template);
   };
 
   return (
@@ -250,8 +244,17 @@ const Templates: React.FC = () => {
                       <Trash2 className="w-4 h-4" />
                     </Button>
                     <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={() => previewTemplate(template)}
+                      className="border-white/20 text-white hover:bg-white/10"
+                      title="Preview Template"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
                       size="sm"
-                      onClick={() => useMyTemplate(template)}
+                      onClick={() => useTemplate(template)}
                       className="bg-purple-600 hover:bg-purple-700 text-white"
                     >
                       <Copy className="w-4 h-4 mr-1" />
@@ -336,6 +339,12 @@ const Templates: React.FC = () => {
           </div>
         )}
       </div>
+      <TemplatePreviewDialog
+        template={previewingTemplate}
+        isOpen={!!previewingTemplate}
+        onOpenChange={(isOpen) => !isOpen && setPreviewingTemplate(null)}
+        onUseTemplate={useTemplate}
+      />
     </div>
   );
 };
