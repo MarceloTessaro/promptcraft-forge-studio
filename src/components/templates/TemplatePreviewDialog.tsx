@@ -13,20 +13,6 @@ import { Copy, Star } from 'lucide-react';
 import { CustomTemplate, PromptBlock } from '@/types/builder';
 import { LibraryTemplate } from '@/types/templates';
 
-// This is the local interface from Templates.tsx
-interface LibraryTemplate {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  aiModel: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  rating: number;
-  uses: number;
-  blocks: PromptBlock[];
-  tags: string[];
-}
-
 type Template = LibraryTemplate | CustomTemplate;
 
 interface TemplatePreviewDialogProps {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -10,7 +11,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { CustomTemplate, PromptBlock } from '@/types/builder';
-import { LibraryTemplate } from '@/types/templates';
+import { LibraryTemplate, TemplateDifficulty } from '@/types/templates';
 import TemplatePreviewDialog from '@/components/templates/TemplatePreviewDialog';
 import CustomTemplateCard from '@/components/templates/CustomTemplateCard';
 import TemplateGridItem from '@/components/templates/TemplateGridItem';
@@ -48,7 +49,7 @@ const Templates: React.FC = () => {
       description: 'Generate creative stories, poems, and narrative content with specific tone and style.',
       category: 'Creative Writing',
       aiModel: 'ChatGPT',
-      difficulty: 'Beginner',
+      difficulty: 'Beginner' as TemplateDifficulty,
       rating: 4.8,
       uses: 2340,
       tags: ['storytelling', 'creative', 'narrative'],
@@ -63,7 +64,7 @@ const Templates: React.FC = () => {
       description: 'Analyze code for bugs, performance issues, and suggest improvements.',
       category: 'Coding',
       aiModel: 'Claude',
-      difficulty: 'Advanced',
+      difficulty: 'Advanced' as TemplateDifficulty,
       rating: 4.9,
       uses: 1890,
       tags: ['code review', 'optimization', 'debugging'],
@@ -79,7 +80,7 @@ const Templates: React.FC = () => {
       description: 'Transform raw data into actionable insights and visualizations.',
       category: 'Analysis',
       aiModel: 'ChatGPT',
-      difficulty: 'Intermediate',
+      difficulty: 'Intermediate' as TemplateDifficulty,
       rating: 4.7,
       uses: 1567,
       tags: ['data analysis', 'insights', 'visualization'],
@@ -95,7 +96,7 @@ const Templates: React.FC = () => {
       description: 'Create engaging educational materials and lesson plans.',
       category: 'Education',
       aiModel: 'Claude',
-      difficulty: 'Beginner',
+      difficulty: 'Beginner' as TemplateDifficulty,
       rating: 4.6,
       uses: 987,
       tags: ['education', 'teaching', 'learning'],
@@ -110,7 +111,7 @@ const Templates: React.FC = () => {
       description: 'Develop strategic business recommendations and market analysis.',
       category: 'Business',
       aiModel: 'ChatGPT',
-      difficulty: 'Advanced',
+      difficulty: 'Advanced' as TemplateDifficulty,
       rating: 4.8,
       uses: 2103,
       tags: ['strategy', 'business', 'analysis'],
@@ -125,7 +126,7 @@ const Templates: React.FC = () => {
       description: 'Create detailed prompts for AI image generation tools.',
       category: 'Image Generation',
       aiModel: 'Midjourney',
-      difficulty: 'Intermediate',
+      difficulty: 'Intermediate' as TemplateDifficulty,
       rating: 4.5,
       uses: 3421,
       tags: ['midjourney', 'dalle', 'stable diffusion'],
