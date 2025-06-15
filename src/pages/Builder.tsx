@@ -1,10 +1,10 @@
-
 import React, { useState, useCallback } from 'react';
 import { SuggestionEngine, Suggestion } from '@/utils/suggestionEngine';
 import PromptBlocks from '@/components/builder/PromptBlocks';
 import PreviewPanel from '@/components/builder/PreviewPanel';
 import Header from '@/components/builder/Header';
 import SmartSuggestions from '@/components/builder/SmartSuggestions';
+import OnboardingGuide from '@/components/builder/OnboardingGuide';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { useTemplates } from '@/hooks/use-templates';
 import { usePromptBuilder } from '@/hooks/usePromptBuilder';
@@ -17,6 +17,10 @@ import { toast } from '@/hooks/use-toast';
 const Builder = () => {
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    // Check if user has seen onboarding before
+    return !localStorage.getItem('promptcraft_onboarding_completed');
+  });
   
   const { templates, saveTemplate, loadTemplate } = useTemplates();
   const { handleError } = useErrorHandler();
@@ -40,6 +44,11 @@ const Builder = () => {
     previewError,
     generatePreview,
   } = useAIPreview();
+
+  const handleOnboardingClose = () => {
+    setShowOnboarding(false);
+    localStorage.setItem('promptcraft_onboarding_completed', 'true');
+  };
 
   const copyPrompt = useCallback(async () => {
     try {
@@ -118,55 +127,71 @@ const Builder = () => {
 
   return (
     <ErrorBoundary onError={(error, errorInfo) => logger.error('Builder component error', 'Builder', { error, errorInfo })}>
-      <div className="min-h-screen py-8">
-        <div className="container mx-auto px-4">
+      <div className="min-h-screen py-4 sm:py-6 lg:py-8 bg-background">
+        <div className="container mx-auto px-3 sm:px-4 lg:px-6">
           <Header 
             saveTemplate={saveTemplate} 
             loadTemplate={loadTemplate}
             templates={templates}
           />
           
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-8">
-            <ErrorBoundary>
-              <PromptBlocks
-                blocks={blocks}
-                removeBlock={removeBlock}
-                updateBlockContent={updateBlockContent}
-                addBlock={addBlock}
-                clearDraft={clearDraft}
-              />
-            </ErrorBoundary>
-            
-            <ErrorBoundary>
-              <div className="space-y-6">
-                <SmartSuggestions 
-                  suggestions={suggestions}
-                  onApplySuggestion={handleApplySuggestion}
+          {/* Mobile-First Responsive Grid */}
+          <div className="mt-6 sm:mt-8 space-y-6 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6 xl:gap-8">
+            {/* Prompt Blocks - Full width on mobile, 5 cols on desktop */}
+            <div className="lg:col-span-5">
+              <ErrorBoundary>
+                <PromptBlocks
+                  blocks={blocks}
+                  removeBlock={removeBlock}
+                  updateBlockContent={updateBlockContent}
+                  addBlock={addBlock}
+                  clearDraft={clearDraft}
                 />
-              </div>
-            </ErrorBoundary>
+              </ErrorBoundary>
+            </div>
             
-            <ErrorBoundary>
-              <PreviewPanel
-                assembledPrompt={assembledPrompt}
-                copyPrompt={copyPrompt}
-                onSaveClick={() => setIsSaveDialogOpen(true)}
-                variables={variables}
-                variableValues={variableValues}
-                onVariableChange={handleVariableChange}
-                aiPreview={aiPreview}
-                isPreviewLoading={isPreviewLoading}
-                previewError={previewError}
-                generatePreview={handleGeneratePreview}
-                openaiApiKey="" // No longer needed with Edge Function
-                onApiKeyChange={() => {}} // No longer needed
-                isSaveDialogOpen={isSaveDialogOpen}
-                onOpenSaveDialogChange={setIsSaveDialogOpen}
-                onSaveTemplate={handleSaveTemplate}
-              />
-            </ErrorBoundary>
+            {/* Smart Suggestions - Full width on mobile, 2 cols on desktop */}
+            <div className="lg:col-span-2">
+              <ErrorBoundary>
+                <div className="sticky top-24">
+                  <SmartSuggestions 
+                    suggestions={suggestions}
+                    onApplySuggestion={handleApplySuggestion}
+                  />
+                </div>
+              </ErrorBoundary>
+            </div>
+            
+            {/* Preview Panel - Full width on mobile, 5 cols on desktop */}
+            <div className="lg:col-span-5">
+              <ErrorBoundary>
+                <PreviewPanel
+                  assembledPrompt={assembledPrompt}
+                  copyPrompt={copyPrompt}
+                  onSaveClick={() => setIsSaveDialogOpen(true)}
+                  variables={variables}
+                  variableValues={variableValues}
+                  onVariableChange={handleVariableChange}
+                  aiPreview={aiPreview}
+                  isPreviewLoading={isPreviewLoading}
+                  previewError={previewError}
+                  generatePreview={handleGeneratePreview}
+                  openaiApiKey=""
+                  onApiKeyChange={() => {}}
+                  isSaveDialogOpen={isSaveDialogOpen}
+                  onOpenSaveDialogChange={setIsSaveDialogOpen}
+                  onSaveTemplate={handleSaveTemplate}
+                />
+              </ErrorBoundary>
+            </div>
           </div>
         </div>
+
+        {/* Onboarding Guide */}
+        <OnboardingGuide 
+          isOpen={showOnboarding} 
+          onClose={handleOnboardingClose} 
+        />
       </div>
     </ErrorBoundary>
   );
