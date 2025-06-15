@@ -1,5 +1,3 @@
-
-```tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -17,6 +15,7 @@ import TemplatePreviewDialog from '@/components/templates/TemplatePreviewDialog'
 import CustomTemplateCard from '@/components/templates/CustomTemplateCard';
 import TemplateGridItem from '@/components/templates/TemplateGridItem';
 import TemplateListItem from '@/components/templates/TemplateListItem';
+import TemplateCard from '@/components/templates/TemplateCard';
 
 const Templates: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -146,6 +145,11 @@ const Templates: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
+  const filteredCustomTemplates = customTemplates.filter(template => {
+    const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
+
   const useTemplate = (template: LibraryTemplate | CustomTemplate) => {
     navigate('/builder', { state: { blocks: template.blocks } });
   };
@@ -213,16 +217,26 @@ const Templates: React.FC = () => {
         {customTemplates.length > 0 && (
           <div className="mb-12">
             <h2 className="text-3xl font-bold gradient-text mb-6">My Saved Templates</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {customTemplates.map((template) => (
-                <CustomTemplateCard
-                  key={template.id}
-                  template={template}
-                  onDelete={deleteTemplate}
-                  onPreview={previewTemplate}
-                  onUse={useTemplate}
-                />
-              ))}
+            <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
+              {filteredCustomTemplates.map((template) =>
+                viewMode === 'grid' ? (
+                  <CustomTemplateCard
+                    key={template.id}
+                    template={template}
+                    onDelete={deleteTemplate}
+                    onPreview={previewTemplate}
+                    onUse={useTemplate}
+                  />
+                ) : (
+                  <TemplateListItem
+                    key={template.id}
+                    template={template}
+                    onDelete={deleteTemplate}
+                    onPreview={previewTemplate}
+                    onUse={useTemplate}
+                  />
+                )
+              )}
             </div>
           </div>
         )}
@@ -236,7 +250,7 @@ const Templates: React.FC = () => {
         <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
           {filteredTemplates.map((template) =>
             viewMode === 'grid' ? (
-              <TemplateGridItem
+              <TemplateCard
                 key={template.id}
                 template={template}
                 onPreview={previewTemplate}
@@ -270,4 +284,3 @@ const Templates: React.FC = () => {
 };
 
 export default Templates;
-```

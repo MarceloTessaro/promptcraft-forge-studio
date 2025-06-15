@@ -1,20 +1,27 @@
 
 import React from 'react';
+import { LibraryTemplate } from '@/types/templates';
 import { CustomTemplate } from '@/types/builder';
-import CustomTemplateCard from './CustomTemplateCard';
+import TemplateCard from '@/components/templates/TemplateCard';
 
 interface TemplateGridItemProps {
-  template: CustomTemplate;
-  onDelete: (id: string) => void;
-  onPreview: (template: CustomTemplate) => void;
-  onUse: (template: CustomTemplate) => void;
+  template: LibraryTemplate | CustomTemplate;
+  onPreview: (template: LibraryTemplate | CustomTemplate) => void;
+  onUse: (template: LibraryTemplate | CustomTemplate) => void;
 }
 
-const TemplateGridItem: React.FC<TemplateGridItemProps> = ({ template, onDelete, onPreview, onUse }) => {
+const TemplateGridItem: React.FC<TemplateGridItemProps> = ({ template, onPreview, onUse }) => {
+  const isCustom = 'name' in template;
+  
+  if (isCustom) {
+    // This assumes you have a CustomTemplateCard to handle custom templates.
+    // If not, you might need to adapt TemplateCard or create a new component.
+    return null; // Or a specific component for custom templates in grid view
+  }
+
   return (
-    <CustomTemplateCard
+    <TemplateCard
       template={template}
-      onDelete={onDelete}
       onPreview={onPreview}
       onUse={onUse}
     />

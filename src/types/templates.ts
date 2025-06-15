@@ -1,5 +1,4 @@
 
-```ts
 import { PromptBlock } from './builder';
 
 export interface LibraryTemplate {
@@ -8,10 +7,9 @@ export interface LibraryTemplate {
   description: string;
   category: string;
   aiModel: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  difficulty: string;
   rating: number;
   uses: number;
-  blocks: PromptBlock[];
   tags: string[];
+  blocks: PromptBlock[];
 }
-```

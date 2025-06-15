@@ -1,7 +1,6 @@
 
-```tsx
 import React from 'react';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trash2, Eye, Copy } from 'lucide-react';
 import { CustomTemplate } from '@/types/builder';
@@ -15,14 +14,19 @@ interface CustomTemplateCardProps {
 
 const CustomTemplateCard: React.FC<CustomTemplateCardProps> = ({ template, onDelete, onPreview, onUse }) => {
   return (
-    <Card className="glass p-6 hover:glow transition-all duration-300 flex flex-col justify-between">
-      <div>
-        <h3 className="text-lg font-semibold text-white mb-2">{template.name}</h3>
-        <p className="text-sm text-white/60">
+    <Card className="glass flex flex-col h-full">
+      <CardHeader>
+        <CardTitle className="gradient-text">{template.name}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex-grow">
+        <p className="text-sm text-white/60 line-clamp-2">
+          {template.blocks.map(b => b.content).join(' ').substring(0, 100)}...
+        </p>
+        <p className="text-xs text-white/40 mt-2">
           Created on {new Date(template.createdAt).toLocaleDateString()}
         </p>
-      </div>
-      <div className="flex items-center justify-end gap-2 mt-4">
+      </CardContent>
+      <CardFooter className="flex justify-end gap-2">
         <Button
           size="icon"
           variant="destructive"
@@ -49,10 +53,9 @@ const CustomTemplateCard: React.FC<CustomTemplateCardProps> = ({ template, onDel
           <Copy className="w-4 h-4 mr-1" />
           Use
         </Button>
-      </div>
+      </CardFooter>
     </Card>
   );
 };
 
 export default CustomTemplateCard;
-```
