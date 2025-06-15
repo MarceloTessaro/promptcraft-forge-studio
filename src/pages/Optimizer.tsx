@@ -12,18 +12,22 @@ import {
   RefreshCw,
   Sparkles,
   TrendingUp,
-  FileText
+  FileText,
+  Target,
+  Lightbulb
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { PromptAnalysis } from '@/types/optimizer';
+import { PromptAnalysis, OptimizationSuggestion } from '@/types/optimizer';
 import { PromptAnalyzer } from '@/utils/promptAnalyzer';
 import PromptAnalysisCard from '@/components/optimizer/PromptAnalysisCard';
+import OptimizationSuggestions from '@/components/optimizer/OptimizationSuggestions';
 
 const Optimizer = () => {
   const [inputPrompt, setInputPrompt] = useState('');
   const [analysis, setAnalysis] = useState<PromptAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [optimizedPrompt, setOptimizedPrompt] = useState('');
+  const [optimizationSuggestions, setOptimizationSuggestions] = useState<OptimizationSuggestion[]>([]);
 
   const analyzePrompt = async () => {
     if (!inputPrompt.trim()) {
@@ -41,36 +45,62 @@ const Optimizer = () => {
     setTimeout(() => {
       const promptAnalysis = PromptAnalyzer.analyzePrompt(inputPrompt);
       setAnalysis(promptAnalysis);
-      generateOptimizedPrompt(promptAnalysis);
+      
+      // Generate optimization suggestions
+      const suggestions = promptAnalysis.suggestions || [];
+      setOptimizationSuggestions(suggestions);
+      
+      // Generate optimized prompt
+      const optimized = PromptAnalyzer.generateOptimizedPrompt(inputPrompt, promptAnalysis);
+      setOptimizedPrompt(optimized);
+      
       setIsAnalyzing(false);
     }, 1500);
   };
 
-  const generateOptimizedPrompt = (analysis: PromptAnalysis) => {
-    let optimized = inputPrompt;
+  const applySuggestion = (suggestion: OptimizationSuggestion) => {
+    let newPrompt = inputPrompt;
     
-    // Apply basic optimizations based on analysis
-    if (analysis.metrics.structure < 70) {
-      optimized = `## Context\n${optimized}\n\n## Task\n[Define your specific task here]\n\n## Format\n[Specify desired output format]`;
+    switch (suggestion.type) {
+      case 'improvement':
+        if (suggestion.before && suggestion.after) {
+          newPrompt = newPrompt.replace(suggestion.before, suggestion.after);
+        }
+        break;
+      case 'addition':
+        if (suggestion.after) {
+          newPrompt += '\n\n' + suggestion.after;
+        }
+        break;
+      case 'restructure':
+        if (suggestion.after) {
+          // For restructure, we'll provide the new structure as a template
+          setOptimizedPrompt(suggestion.after);
+        }
+        break;
     }
     
-    if (analysis.metrics.specificity < 70) {
-      optimized += '\n\nPlease be specific in your response and provide concrete examples.';
-    }
+    setInputPrompt(newPrompt);
+    toast({
+      title: "Sugerencia Aplicada",
+      description: "La mejora se ha aplicado a tu prompt.",
+    });
     
-    if (analysis.metrics.clarity < 70) {
-      optimized = optimized.replace(/maybe|perhaps|might|could/gi, (match) => {
-        const replacements: Record<string, string> = {
-          'maybe': 'specifically',
-          'perhaps': 'exactly',
-          'might': 'should',
-          'could': 'will'
-        };
-        return replacements[match.toLowerCase()] || match;
+    // Re-analyze after applying suggestion
+    setTimeout(() => analyzePrompt(), 500);
+  };
+
+  const applyAllSuggestions = () => {
+    if (optimizedPrompt) {
+      setInputPrompt(optimizedPrompt);
+      toast({
+        title: "Todas las Sugerencias Aplicadas",
+        description: "Se han aplicado todas las mejoras sugeridas.",
       });
+      
+      // Re-analyze after applying all suggestions
+      setTimeout(() => analyzePrompt(), 500);
     }
-    
-    setOptimizedPrompt(optimized);
   };
 
   const copyToClipboard = (text: string) => {
@@ -85,20 +115,25 @@ const Optimizer = () => {
     setInputPrompt('');
     setAnalysis(null);
     setOptimizedPrompt('');
+    setOptimizationSuggestions([]);
   };
 
   const examplePrompts = [
     {
-      title: "Exemplo: Escrita Criativa",
+      title: "Ejemplo: Escrita Criativa",
       prompt: "Escreva uma história sobre um robô que descobre emoções."
     },
     {
-      title: "Exemplo: Análise de Dados",
+      title: "Ejemplo: Análise de Dados",
       prompt: "Analise estes dados de vendas e me dê insights."
     },
     {
-      title: "Exemplo: Código Python",
+      title: "Ejemplo: Código Python",
       prompt: "Crie uma função Python para ordenar uma lista."
+    },
+    {
+      title: "Ejemplo: Bem Estruturado",
+      prompt: "## Context\nYou are a professional business consultant with 10+ years of experience.\n\n## Task\nAnalyze the provided quarterly sales data and create a comprehensive report.\n\n## Format\n- Executive summary (2-3 sentences)\n- Key findings (3-5 bullet points)\n- Recommendations (numbered list)\n- Charts or visual elements where helpful\n\n## Constraints\n- Keep response under 500 words\n- Focus on actionable insights\n- Avoid technical jargon"
     }
   ];
 
@@ -113,13 +148,13 @@ const Optimizer = () => {
           </h1>
           <p className="text-white/80 text-lg max-w-2xl mx-auto">
             Analise e otimize seus prompts para obter melhores resultados com IA. 
-            Receba feedback detalhado e sugestões de melhoria.
+            Receba feedback detalhado e sugestões de melhoria personalizadas.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Input Section */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="xl:col-span-2 space-y-6">
             <Card className="glass">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
@@ -155,8 +190,9 @@ const Optimizer = () => {
                 </div>
 
                 {/* Character count */}
-                <div className="text-sm text-white/60">
-                  Caracteres: {inputPrompt.length} | Palavras: {inputPrompt.split(/\s+/).filter(word => word.length > 0).length}
+                <div className="flex justify-between text-sm text-white/60">
+                  <span>Caracteres: {inputPrompt.length}</span>
+                  <span>Palavras: {inputPrompt.split(/\s+/).filter(word => word.length > 0).length}</span>
                 </div>
               </CardContent>
             </Card>
@@ -191,8 +227,9 @@ const Optimizer = () => {
             )}
           </div>
 
-          {/* Analysis Section */}
-          <div className="space-y-6">
+          {/* Analysis and Suggestions Section */}
+          <div className="xl:col-span-2 space-y-6">
+            {/* Analysis Card */}
             {analysis ? (
               <PromptAnalysisCard analysis={analysis} />
             ) : (
@@ -209,10 +246,22 @@ const Optimizer = () => {
               </Card>
             )}
 
+            {/* Optimization Suggestions */}
+            {optimizationSuggestions.length > 0 && (
+              <OptimizationSuggestions
+                suggestions={optimizationSuggestions}
+                onApplySuggestion={applySuggestion}
+                onApplyAll={applyAllSuggestions}
+              />
+            )}
+
             {/* Examples */}
             <Card className="glass">
               <CardHeader>
-                <CardTitle className="text-white text-lg">Exemplos para Testar</CardTitle>
+                <CardTitle className="text-white text-lg flex items-center gap-2">
+                  <Target className="w-5 h-5 text-amber-400" />
+                  Exemplos para Testar
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {examplePrompts.map((example, index) => (
@@ -230,7 +279,7 @@ const Optimizer = () => {
                         Usar
                       </Button>
                     </div>
-                    <p className="text-white/70 text-sm">{example.prompt}</p>
+                    <p className="text-white/70 text-sm line-clamp-2">{example.prompt}</p>
                   </div>
                 ))}
               </CardContent>
@@ -242,7 +291,7 @@ const Optimizer = () => {
         <Card className="glass mt-8">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-400" />
+              <Lightbulb className="w-5 h-5 text-amber-400" />
               Dicas para Prompts Eficazes
             </CardTitle>
           </CardHeader>
@@ -253,7 +302,7 @@ const Optimizer = () => {
                   <FileText className="w-6 h-6 text-blue-400" />
                 </div>
                 <h4 className="text-white font-semibold mb-2">Seja Específico</h4>
-                <p className="text-white/70 text-sm">Use detalhes concretos em vez de termos vagos</p>
+                <p className="text-white/70 text-sm">Use detalhes concretos em vez de termos vagos como "alguns" ou "talvez"</p>
               </div>
               
               <div className="text-center">
@@ -261,7 +310,7 @@ const Optimizer = () => {
                   <BarChart3 className="w-6 h-6 text-green-400" />
                 </div>
                 <h4 className="text-white font-semibold mb-2">Estruture Bem</h4>
-                <p className="text-white/70 text-sm">Organize em seções claras: contexto, tarefa, formato</p>
+                <p className="text-white/70 text-sm">Organize em seções claras: contexto → tarefa → formato → exemplos</p>
               </div>
               
               <div className="text-center">
@@ -269,7 +318,7 @@ const Optimizer = () => {
                   <Copy className="w-6 h-6 text-purple-400" />
                 </div>
                 <h4 className="text-white font-semibold mb-2">Use Exemplos</h4>
-                <p className="text-white/70 text-sm">Inclua exemplos do que você deseja como resultado</p>
+                <p className="text-white/70 text-sm">Inclua exemplos concretos do que você deseja como resultado</p>
               </div>
               
               <div className="text-center">
@@ -277,7 +326,7 @@ const Optimizer = () => {
                   <Zap className="w-6 h-6 text-orange-400" />
                 </div>
                 <h4 className="text-white font-semibold mb-2">Defina Restrições</h4>
-                <p className="text-white/70 text-sm">Estabeleça limites claros e requisitos específicos</p>
+                <p className="text-white/70 text-sm">Estabeleça limites claros sobre comprimento, tom e conteúdo</p>
               </div>
             </div>
           </CardContent>

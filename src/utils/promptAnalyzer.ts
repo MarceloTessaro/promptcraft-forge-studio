@@ -6,11 +6,13 @@ export class PromptAnalyzer {
     const metrics = this.calculateMetrics(prompt);
     const score = this.calculateOverallScore(metrics);
     const analysis = this.generateAnalysis(prompt, metrics);
+    const suggestions = this.generateOptimizationSuggestions(prompt, metrics);
 
     return {
       score,
       ...analysis,
-      metrics
+      metrics,
+      suggestions
     };
   }
 
@@ -29,13 +31,20 @@ export class PromptAnalyzer {
     // Check for clear instructions
     if (/\b(please|kindly|specifically|exactly|precisely)\b/i.test(prompt)) score += 10;
     
-    // Check for ambiguous words
-    if (/\b(maybe|perhaps|might|could|some|few|many)\b/i.test(prompt)) score -= 15;
+    // Check for ambiguous words (penalty)
+    const ambiguousWords = prompt.match(/\b(maybe|perhaps|might|could|some|few|many|possibly|probably)\b/gi);
+    if (ambiguousWords) score -= Math.min(20, ambiguousWords.length * 3);
     
-    // Check sentence length (penalize very long sentences)
-    const avgSentenceLength = prompt.split(/[.!?]+/).reduce((acc, sentence) => 
-      acc + sentence.trim().split(' ').length, 0) / prompt.split(/[.!?]+/).length;
-    if (avgSentenceLength > 25) score -= 10;
+    // Check sentence complexity
+    const sentences = prompt.split(/[.!?]+/).filter(s => s.trim());
+    const avgWordsPerSentence = sentences.reduce((acc, sentence) => 
+      acc + sentence.trim().split(' ').length, 0) / sentences.length;
+    
+    if (avgWordsPerSentence > 25) score -= 10;
+    if (avgWordsPerSentence < 10) score -= 5;
+    
+    // Check for clear action verbs
+    if (/\b(create|generate|write|analyze|explain|describe|list|compare|summarize)\b/i.test(prompt)) score += 10;
     
     return Math.max(0, Math.min(100, score));
   }
@@ -44,16 +53,24 @@ export class PromptAnalyzer {
     let score = 60; // Base score
     
     // Check for specific requirements
-    if (/\b(format|style|tone|length|structure)\b/i.test(prompt)) score += 15;
+    const specificityIndicators = [
+      /\b(format|style|tone|length|structure|bullet points|numbered list)\b/i,
+      /\b(example|for instance|such as|like|including)\b/i,
+      /\b(don't|avoid|exclude|must not|should not|never)\b/i,
+      /\b(\d+\s*(words?|characters?|sentences?|paragraphs?|pages?|items?|points?))\b/i,
+      /\b(professional|casual|formal|informal|technical|simple|detailed)\b/i
+    ];
     
-    // Check for examples
-    if (/\b(example|for instance|such as|like)\b/i.test(prompt)) score += 10;
+    specificityIndicators.forEach(regex => {
+      if (regex.test(prompt)) score += 8;
+    });
     
-    // Check for constraints
-    if (/\b(don't|avoid|exclude|must not|should not)\b/i.test(prompt)) score += 10;
+    // Check for measurement/quantity specificity
+    const measurements = prompt.match(/\b\d+\s*(words?|characters?|minutes?|hours?|%|percent)\b/gi);
+    if (measurements) score += Math.min(15, measurements.length * 5);
     
-    // Check for measurements/quantities
-    if (/\b(\d+\s*(words?|characters?|sentences?|paragraphs?|pages?))\b/i.test(prompt)) score += 15;
+    // Check for role specification
+    if (/\b(you are|act as|as a|role of|pretend to be)\b/i.test(prompt)) score += 10;
     
     return Math.max(0, Math.min(100, score));
   }
@@ -61,14 +78,31 @@ export class PromptAnalyzer {
   private static assessStructure(prompt: string): number {
     let score = 50; // Base score
     
-    // Check for numbered/bulleted lists
-    if (/^\s*[\d\-\*]\s+/m.test(prompt)) score += 20;
+    // Check for organized structure
+    if (/^\s*[\d\-\*•]\s+/m.test(prompt)) score += 15;
+    if (/^#+\s+/m.test(prompt)) score += 10; // Headers
     
     // Check for clear sections
-    if (/\b(context|task|format|example|constraint)\b/i.test(prompt)) score += 15;
+    const structureKeywords = [
+      'context', 'background', 'task', 'objective', 'goal',
+      'format', 'output', 'style', 'example', 'constraint', 'requirement'
+    ];
+    
+    const foundKeywords = structureKeywords.filter(keyword => 
+      new RegExp(`\\b${keyword}\\b`, 'i').test(prompt)
+    );
+    score += Math.min(20, foundKeywords.length * 3);
     
     // Check for role definition
-    if (/\b(you are|act as|as a|role of)\b/i.test(prompt)) score += 15;
+    if (/\b(you are|act as|as a|role of)\b/i.test(prompt)) score += 10;
+    
+    // Check for logical flow (simple heuristic)
+    const hasContext = /\b(context|background|situation|scenario)\b/i.test(prompt);
+    const hasTask = /\b(task|goal|objective|create|generate|write)\b/i.test(prompt);
+    const hasFormat = /\b(format|structure|output|response)\b/i.test(prompt);
+    
+    if (hasContext && hasTask) score += 10;
+    if (hasTask && hasFormat) score += 5;
     
     return Math.max(0, Math.min(100, score));
   }
@@ -76,15 +110,21 @@ export class PromptAnalyzer {
   private static assessCompleteness(prompt: string): number {
     let score = 40; // Base score
     
-    const hasContext = /\b(context|background|situation|scenario)\b/i.test(prompt);
-    const hasTask = /\b(task|goal|objective|create|generate|write)\b/i.test(prompt);
-    const hasFormat = /\b(format|structure|output|response)\b/i.test(prompt);
-    const hasConstraints = /\b(constraint|limit|rule|requirement)\b/i.test(prompt);
+    const completenessChecks = [
+      { regex: /\b(context|background|situation|scenario)\b/i, points: 15, name: 'context' },
+      { regex: /\b(task|goal|objective|create|generate|write|do|perform)\b/i, points: 25, name: 'task' },
+      { regex: /\b(format|structure|output|response|style)\b/i, points: 15, name: 'format' },
+      { regex: /\b(constraint|limit|rule|requirement|don't|avoid)\b/i, points: 10, name: 'constraints' },
+      { regex: /\b(example|for instance|such as|like)\b/i, points: 10, name: 'examples' }
+    ];
     
-    if (hasContext) score += 15;
-    if (hasTask) score += 20;
-    if (hasFormat) score += 15;
-    if (hasConstraints) score += 10;
+    completenessChecks.forEach(check => {
+      if (check.regex.test(prompt)) score += check.points;
+    });
+    
+    // Bonus for comprehensive prompts
+    if (prompt.length > 200) score += 5;
+    if (prompt.length > 500) score += 5;
     
     return Math.max(0, Math.min(100, score));
   }
@@ -112,33 +152,161 @@ export class PromptAnalyzer {
     // Analyze weaknesses and generate suggestions
     if (metrics.clarity < 70) {
       weaknesses.push("Instructions could be clearer");
-      suggestions.push("Use more specific action words and avoid ambiguous terms");
+      suggestions.push("Use more specific action words and avoid ambiguous terms like 'maybe', 'perhaps', 'some'");
     }
     
     if (metrics.specificity < 70) {
       weaknesses.push("Lacks specific requirements");
-      suggestions.push("Add specific format requirements, word counts, or style guidelines");
+      suggestions.push("Add specific format requirements, word counts, style guidelines, or concrete examples");
     }
     
     if (metrics.structure < 70) {
       weaknesses.push("Could benefit from better organization");
-      suggestions.push("Organize your prompt with clear sections: Context, Task, Format, Examples");
+      suggestions.push("Organize your prompt with clear sections using headers or bullet points: Context → Task → Format → Examples");
     }
     
     if (metrics.completeness < 70) {
       weaknesses.push("Missing key components");
-      suggestions.push("Include context, clear objectives, and desired output format");
+      suggestions.push("Include background context, clear objectives, desired output format, and specific constraints");
     }
 
-    // Additional suggestions based on content analysis
+    // Content-specific suggestions
     if (!/\b(example|for instance)\b/i.test(prompt)) {
-      suggestions.push("Consider adding examples to clarify your expectations");
+      suggestions.push("Consider adding concrete examples to clarify your expectations");
     }
     
-    if (!/\b(tone|style)\b/i.test(prompt)) {
-      suggestions.push("Specify the desired tone or writing style");
+    if (!/\b(tone|style|voice)\b/i.test(prompt)) {
+      suggestions.push("Specify the desired tone, style, or voice for the response");
+    }
+
+    if (!/\b(\d+\s*words?|\d+\s*sentences?|\d+\s*paragraphs?)\b/i.test(prompt)) {
+      suggestions.push("Define specific length requirements (word count, number of points, etc.)");
     }
 
     return { strengths, weaknesses, suggestions };
+  }
+
+  private static generateOptimizationSuggestions(prompt: string, metrics: any): OptimizationSuggestion[] {
+    const suggestions: OptimizationSuggestion[] = [];
+
+    // Structure improvements
+    if (metrics.structure < 70) {
+      suggestions.push({
+        type: 'restructure',
+        category: 'structure',
+        description: 'Reorganize your prompt with clear sections for better readability and effectiveness',
+        before: prompt.slice(0, 100) + "...",
+        after: "## Context\n[Background information]\n\n## Task\n[Specific objective]\n\n## Format\n[Desired output structure]",
+        impact: 'high'
+      });
+    }
+
+    // Clarity improvements
+    if (metrics.clarity < 70) {
+      const ambiguousTerms = prompt.match(/\b(maybe|perhaps|might|could|some|few|many)\b/gi);
+      if (ambiguousTerms) {
+        suggestions.push({
+          type: 'improvement',
+          category: 'clarity',
+          description: 'Replace ambiguous terms with specific language',
+          before: ambiguousTerms[0],
+          after: this.getSuggestedReplacement(ambiguousTerms[0]),
+          impact: 'medium'
+        });
+      }
+    }
+
+    // Completeness additions
+    if (metrics.completeness < 70) {
+      if (!/\b(example|for instance)\b/i.test(prompt)) {
+        suggestions.push({
+          type: 'addition',
+          category: 'examples',
+          description: 'Add concrete examples to clarify expectations',
+          after: "Examples:\n- [Provide 1-2 specific examples of desired output]",
+          impact: 'high'
+        });
+      }
+
+      if (!/\b(constraint|don't|avoid)\b/i.test(prompt)) {
+        suggestions.push({
+          type: 'addition',
+          category: 'constraints',
+          description: 'Define what should be avoided or excluded',
+          after: "Constraints:\n- Don't include [specify what to avoid]\n- Keep response under [X] words",
+          impact: 'medium'
+        });
+      }
+    }
+
+    // Specificity improvements
+    if (metrics.specificity < 70) {
+      if (!/\b(\d+\s*words?|\d+\s*sentences?)\b/i.test(prompt)) {
+        suggestions.push({
+          type: 'addition',
+          category: 'specificity',
+          description: 'Add specific length or quantity requirements',
+          after: "Length: Approximately [X] words or [Y] bullet points",
+          impact: 'medium'
+        });
+      }
+    }
+
+    return suggestions;
+  }
+
+  private static getSuggestedReplacement(ambiguousTerm: string): string {
+    const replacements: Record<string, string> = {
+      'maybe': 'specifically',
+      'perhaps': 'exactly',
+      'might': 'should',
+      'could': 'will',
+      'some': 'three to five',
+      'few': 'two to three',
+      'many': 'at least five'
+    };
+    return replacements[ambiguousTerm.toLowerCase()] || 'specifically';
+  }
+
+  static generateOptimizedPrompt(originalPrompt: string, analysis: PromptAnalysis): string {
+    let optimized = originalPrompt;
+    
+    // Apply structural improvements
+    if (analysis.metrics.structure < 70) {
+      const hasHeaders = /^#+\s+/m.test(optimized);
+      if (!hasHeaders) {
+        // Add basic structure if missing
+        optimized = `## Context\n${optimized}\n\n## Task\n[Please define your specific task here]\n\n## Format\n[Specify desired output format]`;
+      }
+    }
+    
+    // Apply clarity improvements
+    if (analysis.metrics.clarity < 70) {
+      optimized = optimized.replace(/\b(maybe|perhaps|might|could)\b/gi, (match) => {
+        const replacements: Record<string, string> = {
+          'maybe': 'specifically',
+          'perhaps': 'exactly',
+          'might': 'should',
+          'could': 'will'
+        };
+        return replacements[match.toLowerCase()] || match;
+      });
+    }
+    
+    // Add specificity improvements
+    if (analysis.metrics.specificity < 70) {
+      if (!/\b(\d+\s*words?|\d+\s*points?)\b/i.test(optimized)) {
+        optimized += '\n\nPlease provide a response of approximately 200-300 words with specific examples.';
+      }
+    }
+    
+    // Add completeness improvements
+    if (analysis.metrics.completeness < 70) {
+      if (!/\b(constraint|don't|avoid)\b/i.test(optimized)) {
+        optimized += '\n\nConstraints: Please be concise and avoid unnecessary jargon.';
+      }
+    }
+    
+    return optimized.trim();
   }
 }

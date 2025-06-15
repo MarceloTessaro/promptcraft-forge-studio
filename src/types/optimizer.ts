@@ -20,3 +20,10 @@ export interface OptimizationSuggestion {
   after?: string;
   impact: 'low' | 'medium' | 'high';
 }
+
+export interface DetailedAnalysis extends PromptAnalysis {
+  suggestions: OptimizationSuggestion[];
+  wordCount: number;
+  readabilityScore: number;
+  improvementAreas: string[];
+}
