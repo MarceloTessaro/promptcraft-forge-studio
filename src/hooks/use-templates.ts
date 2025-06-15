@@ -1,64 +1,53 @@
 
 import { useState, useEffect } from 'react';
-import { PromptBlock, CustomTemplate } from '@/types/builder';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { CustomTemplate, PromptBlock } from '@/types/builder';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
-import { v4 as uuidv4 } from 'uuid';
 
 export const useTemplates = () => {
-  const [templates, setTemplates] = useState<CustomTemplate[]>([]);
+  const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useAuth();
+  const [isSaving, setIsSaving] = useState(false);
+  const { session } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      fetchTemplates();
-    } else {
-      // Load from localStorage for non-authenticated users
-      loadFromLocalStorage();
-    }
-  }, [user]);
-
-  const loadFromLocalStorage = () => {
-    try {
-      const savedTemplates = localStorage.getItem('promptTemplates');
-      if (savedTemplates) {
-        setTemplates(JSON.parse(savedTemplates));
-      }
-    } catch (error) {
-      logger.error('Error loading templates from localStorage', 'useTemplates', { error });
-    }
-  };
-
-  const fetchTemplates = async () => {
-    if (!user) return;
-    
+  // Load custom templates from Supabase and localStorage
+  const loadCustomTemplates = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('custom_templates')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      let templates: CustomTemplate[] = [];
+      
+      if (session?.user) {
+        // Load from Supabase for authenticated users
+        const { data, error } = await supabase
+          .from('custom_templates')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      if (data) {
-        const formattedTemplates: CustomTemplate[] = data.map(t => ({
-          id: t.id,
-          name: t.name,
-          blocks: t.prompt as PromptBlock[],
-          createdAt: t.created_at,
-        }));
-        setTemplates(formattedTemplates);
+        templates = data?.map(template => ({
+          id: template.id,
+          name: template.name,
+          blocks: (template.prompt as unknown as PromptBlock[]) || [],
+          createdAt: template.created_at,
+        })) || [];
+      } else {
+        // Load from localStorage for non-authenticated users
+        const savedTemplates = localStorage.getItem('customTemplates');
+        if (savedTemplates) {
+          templates = JSON.parse(savedTemplates);
+        }
       }
+      
+      setCustomTemplates(templates);
     } catch (error) {
-      logger.error('Error fetching templates', 'useTemplates', { error });
+      logger.error('Error loading custom templates', 'useTemplates', { error });
       toast({
         title: "Error",
-        description: "Could not load your templates.",
+        description: "Could not load your custom templates.",
         variant: "destructive",
       });
     } finally {
@@ -66,56 +55,46 @@ export const useTemplates = () => {
     }
   };
 
-  const saveTemplate = async (name: string, blocks: PromptBlock[]) => {
-    if (!user) {
-      // Save to localStorage for non-authenticated users
+  // Save template
+  const saveTemplate = async (template: Omit<CustomTemplate, 'id' | 'createdAt'>) => {
+    setIsSaving(true);
+    try {
       const newTemplate: CustomTemplate = {
-        id: uuidv4(),
-        name,
-        blocks: [...blocks],
+        ...template,
+        id: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
       };
-      const updatedTemplates = [...templates, newTemplate];
-      setTemplates(updatedTemplates);
-      localStorage.setItem('promptTemplates', JSON.stringify(updatedTemplates));
-      
+
+      if (session?.user) {
+        // Save to Supabase for authenticated users
+        const { error } = await supabase
+          .from('custom_templates')
+          .insert({
+            id: newTemplate.id,
+            name: newTemplate.name,
+            prompt: newTemplate.blocks as any,
+            user_id: session.user.id,
+          });
+
+        if (error) throw error;
+      } else {
+        // Save to localStorage for non-authenticated users
+        const updatedTemplates = [...customTemplates, newTemplate];
+        localStorage.setItem('customTemplates', JSON.stringify(updatedTemplates));
+        setCustomTemplates(updatedTemplates);
+      }
+
       toast({
         title: "Template Saved",
-        description: "Template saved locally. Sign in to sync across devices.",
-      });
-      
-      return newTemplate;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('custom_templates')
-        .insert({
-          user_id: user.id,
-          name,
-          prompt: blocks,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      const newTemplate: CustomTemplate = {
-        id: data.id,
-        name: data.name,
-        blocks: data.prompt as PromptBlock[],
-        createdAt: data.created_at,
-      };
-
-      setTemplates(prev => [newTemplate, ...prev]);
-      
-      toast({
-        title: "Template Saved",
-        description: "Template saved successfully.",
+        description: `"${template.name}" has been saved to your templates.`,
       });
 
-      logger.info('Template saved', 'useTemplates', { templateId: data.id });
-      return newTemplate;
+      // Reload templates to get the latest data
+      if (session?.user) {
+        await loadCustomTemplates();
+      }
+
+      logger.info('Template saved successfully', 'useTemplates', { templateName: template.name });
     } catch (error) {
       logger.error('Error saving template', 'useTemplates', { error });
       toast({
@@ -123,42 +102,41 @@ export const useTemplates = () => {
         description: "Could not save template.",
         variant: "destructive",
       });
-      throw error;
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const loadTemplate = (template: CustomTemplate) => {
-    return template.blocks.map(block => ({
-      ...block,
-      id: uuidv4(),
-    }));
-  };
-
-  const deleteTemplate = async (id: string) => {
-    if (!user) {
-      // Delete from localStorage
-      const updatedTemplates = templates.filter(t => t.id !== id);
-      setTemplates(updatedTemplates);
-      localStorage.setItem('promptTemplates', JSON.stringify(updatedTemplates));
-      return;
-    }
-
+  // Delete template
+  const deleteTemplate = async (templateId: string) => {
     try {
-      const { error } = await supabase
-        .from('custom_templates')
-        .delete()
-        .eq('id', id);
+      if (session?.user) {
+        // Delete from Supabase
+        const { error } = await supabase
+          .from('custom_templates')
+          .delete()
+          .eq('id', templateId)
+          .eq('user_id', session.user.id);
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        // Delete from localStorage
+        const updatedTemplates = customTemplates.filter(t => t.id !== templateId);
+        localStorage.setItem('customTemplates', JSON.stringify(updatedTemplates));
+        setCustomTemplates(updatedTemplates);
+      }
 
-      setTemplates(prev => prev.filter(t => t.id !== id));
-      
       toast({
         title: "Template Deleted",
-        description: "Template deleted successfully.",
+        description: "Template has been removed from your collection.",
       });
 
-      logger.info('Template deleted', 'useTemplates', { templateId: id });
+      // Reload templates to get the latest data
+      if (session?.user) {
+        await loadCustomTemplates();
+      }
+
+      logger.info('Template deleted successfully', 'useTemplates', { templateId });
     } catch (error) {
       logger.error('Error deleting template', 'useTemplates', { error });
       toast({
@@ -166,16 +144,20 @@ export const useTemplates = () => {
         description: "Could not delete template.",
         variant: "destructive",
       });
-      throw error;
     }
   };
 
+  // Load templates when component mounts or session changes
+  useEffect(() => {
+    loadCustomTemplates();
+  }, [session?.user?.id]);
+
   return {
-    templates,
-    saveTemplate,
-    loadTemplate,
-    deleteTemplate,
+    customTemplates,
     isLoading,
-    refetch: fetchTemplates,
+    isSaving,
+    loadCustomTemplates,
+    saveTemplate,
+    deleteTemplate,
   };
 };

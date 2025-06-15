@@ -1,265 +1,160 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell 
-} from 'recharts';
-import { 
-  TrendingUp, 
-  Users, 
-  FileText, 
-  Share2,
-  Eye,
-  Calendar
-} from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { BarChart3, Users, FileText, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { logger } from '@/utils/logger';
-
-interface AnalyticsData {
-  totalTemplates: number;
-  totalShares: number;
-  totalViews: number;
-  recentActivity: Array<{
-    date: string;
-    templates: number;
-    shares: number;
-  }>;
-  blockTypeUsage: Array<{
-    type: string;
-    count: number;
-    color: string;
-  }>;
-}
+import { useTemplates } from '@/hooks/use-templates';
 
 const AnalyticsDashboard: React.FC = () => {
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+  const { session } = useAuth();
+  const { customTemplates, isLoading } = useTemplates();
 
-  useEffect(() => {
-    if (user) {
-      fetchAnalytics();
-    }
-  }, [user]);
+  // Calculate basic analytics from available data
+  const totalTemplates = customTemplates.length;
+  const recentTemplates = customTemplates.filter(template => {
+    const createdDate = new Date(template.createdAt);
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    return createdDate > sevenDaysAgo;
+  }).length;
 
-  const fetchAnalytics = async () => {
-    if (!user) return;
-
-    try {
-      // Fetch user templates
-      const { data: templates, error: templatesError } = await supabase
-        .from('custom_templates')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (templatesError) throw templatesError;
-
-      // Calculate analytics
-      const totalTemplates = templates?.length || 0;
-      const totalShares = templates?.filter(t => t.is_public).length || 0;
-      const totalViews = templates?.reduce((sum, t) => sum + (t.view_count || 0), 0) || 0;
-
-      // Analyze block type usage
-      const blockTypeCount: Record<string, number> = {};
-      templates?.forEach(template => {
-        const blocks = template.prompt as any[];
-        blocks?.forEach(block => {
-          blockTypeCount[block.type] = (blockTypeCount[block.type] || 0) + 1;
-        });
-      });
-
-      const blockTypeUsage = Object.entries(blockTypeCount).map(([type, count], index) => ({
-        type: type.charAt(0).toUpperCase() + type.slice(1),
-        count,
-        color: ['#8B5CF6', '#06B6D4', '#10B981', '#F59E0B', '#EF4444'][index % 5],
-      }));
-
-      // Generate recent activity (mock data for demo)
-      const recentActivity = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (6 - i));
-        return {
-          date: date.toLocaleDateString('pt-BR', { weekday: 'short' }),
-          templates: Math.floor(Math.random() * 5),
-          shares: Math.floor(Math.random() * 3),
-        };
-      });
-
-      setAnalytics({
-        totalTemplates,
-        totalShares,
-        totalViews,
-        recentActivity,
-        blockTypeUsage,
-      });
-
-      logger.info('Analytics fetched', 'AnalyticsDashboard');
-    } catch (error) {
-      logger.error('Error fetching analytics', 'AnalyticsDashboard', { error });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (!user) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-white/60">Sign in to view your analytics</p>
-      </div>
-    );
-  }
+  const averageBlocksPerTemplate = totalTemplates > 0 
+    ? Math.round(customTemplates.reduce((sum, template) => sum + template.blocks.length, 0) / totalTemplates)
+    : 0;
 
   if (isLoading) {
     return (
-      <div className="text-center py-12">
-        <p className="text-white/60">Loading analytics...</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i} className="glass border-white/20 animate-pulse">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="h-4 bg-white/20 rounded w-20"></div>
+              <div className="h-4 w-4 bg-white/20 rounded"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 bg-white/20 rounded w-16 mb-2"></div>
+              <div className="h-3 bg-white/20 rounded w-24"></div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     );
   }
 
-  if (!analytics) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-white/60">No analytics data available</p>
-      </div>
-    );
-  }
-
-  const statCards = [
+  const analyticsCards = [
     {
-      title: 'Total Templates',
-      value: analytics.totalTemplates,
+      title: "Total Templates",
+      value: totalTemplates,
+      description: "Templates created",
       icon: FileText,
-      color: 'text-blue-400',
+      change: recentTemplates > 0 ? `+${recentTemplates} this week` : "No new templates this week",
+      positive: recentTemplates > 0
     },
     {
-      title: 'Shared Templates',
-      value: analytics.totalShares,
-      icon: Share2,
-      color: 'text-green-400',
+      title: "Recent Activity",
+      value: recentTemplates,
+      description: "Templates this week",
+      icon: TrendingUp,
+      change: totalTemplates > 0 ? "Keep building!" : "Start creating templates",
+      positive: true
     },
     {
-      title: 'Total Views',
-      value: analytics.totalViews,
-      icon: Eye,
-      color: 'text-purple-400',
+      title: "Avg Complexity",
+      value: averageBlocksPerTemplate,
+      description: "Blocks per template",
+      icon: BarChart3,
+      change: averageBlocksPerTemplate > 3 ? "High complexity" : "Simple templates",
+      positive: averageBlocksPerTemplate > 0
     },
     {
-      title: 'This Week',
-      value: analytics.recentActivity.reduce((sum, day) => sum + day.templates, 0),
-      icon: Calendar,
-      color: 'text-orange-400',
-    },
+      title: "User Status",
+      value: session ? "Logged In" : "Guest",
+      description: session ? "Data synced" : "Local storage",
+      icon: Users,
+      change: session ? "Cloud backup active" : "Sign in to sync",
+      positive: !!session
+    }
   ];
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      {/* Analytics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((stat, index) => (
-          <Card key={index} className="glass">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-white/60">{stat.title}</p>
-                  <p className="text-2xl font-bold text-white">{stat.value}</p>
-                </div>
-                <stat.icon className={`w-8 h-8 ${stat.color}`} />
+        {analyticsCards.map((card, index) => (
+          <Card key={index} className="glass border-white/20 hover:border-white/30 transition-all duration-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-white/80">
+                {card.title}
+              </CardTitle>
+              <card.icon className="h-4 w-4 text-white/60" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white mb-1">
+                {card.value}
               </div>
+              <p className="text-xs text-white/60 mb-2">
+                {card.description}
+              </p>
+              <Badge 
+                variant={card.positive ? "default" : "secondary"}
+                className={`text-xs ${
+                  card.positive 
+                    ? "bg-green-500/20 text-green-300 border-green-500/30" 
+                    : "bg-orange-500/20 text-orange-300 border-orange-500/30"
+                }`}
+              >
+                {card.change}
+              </Badge>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Activity Chart */}
-        <Card className="glass">
+      {/* Recent Templates */}
+      {totalTemplates > 0 && (
+        <Card className="glass border-white/20">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              Recent Activity
+              <FileText className="w-5 h-5" />
+              Recent Templates
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={analytics.recentActivity}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="date" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: '1px solid #374151',
-                    borderRadius: '8px'
-                  }} 
-                />
-                <Bar dataKey="templates" fill="#8B5CF6" />
-                <Bar dataKey="shares" fill="#06B6D4" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Block Type Usage */}
-        <Card className="glass">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Block Type Usage
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {analytics.blockTypeUsage.length > 0 ? (
-                <>
-                  <ResponsiveContainer width="100%" height={120}>
-                    <PieChart>
-                      <Pie
-                        data={analytics.blockTypeUsage}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={50}
-                        dataKey="count"
-                      >
-                        {analytics.blockTypeUsage.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="flex flex-wrap gap-2">
-                    {analytics.blockTypeUsage.map((item) => (
-                      <div key={item.type} className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: item.color }}
-                        />
-                        <Badge variant="secondary" className="text-xs">
-                          {item.type}: {item.count}
-                        </Badge>
-                      </div>
-                    ))}
+            <div className="space-y-3">
+              {customTemplates.slice(0, 5).map((template, index) => (
+                <div key={template.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
+                  <div>
+                    <h4 className="text-white font-medium">{template.name}</h4>
+                    <p className="text-white/60 text-sm">
+                      {template.blocks.length} blocks • Created {new Date(template.createdAt).toLocaleDateString()}
+                    </p>
                   </div>
-                </>
-              ) : (
-                <p className="text-white/60 text-center">No data available</p>
-              )}
+                  <Badge variant="outline" className="border-white/20 text-white/80">
+                    #{index + 1}
+                  </Badge>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
-      </div>
+      )}
+
+      {/* Empty State */}
+      {totalTemplates === 0 && (
+        <Card className="glass border-white/20">
+          <CardContent className="text-center py-12">
+            <FileText className="w-12 h-12 text-white/40 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">No Templates Yet</h3>
+            <p className="text-white/60 mb-4">
+              Start building your first prompt template to see analytics and insights.
+            </p>
+            <Badge variant="outline" className="border-white/20 text-white/80">
+              Go to Builder to get started
+            </Badge>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

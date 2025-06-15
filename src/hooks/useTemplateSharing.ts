@@ -14,22 +14,13 @@ export const useTemplateSharing = () => {
     try {
       const shareUrl = `${window.location.origin}/templates/shared/${template.id}`;
       
-      if (makePublic) {
-        // Update template to be public
-        const { error } = await supabase
-          .from('custom_templates')
-          .update({ is_public: true })
-          .eq('id', template.id);
-
-        if (error) throw error;
-      }
-
-      // Copy share URL to clipboard
+      // For now, just copy the URL to clipboard
+      // In the future, we can add a public sharing feature when the database schema supports it
       await navigator.clipboard.writeText(shareUrl);
       
       toast({
         title: "Template Shared",
-        description: `Share URL copied to clipboard${makePublic ? ' and template made public' : ''}`,
+        description: "Share URL copied to clipboard",
       });
 
       logger.info('Template shared', 'useTemplateSharing', { 
@@ -54,23 +45,17 @@ export const useTemplateSharing = () => {
   const loadSharedTemplate = async (templateId: string) => {
     setIsLoadingShared(true);
     try {
+      // Try to load the template (for now, we'll load any template by ID)
       const { data, error } = await supabase
         .from('custom_templates')
-        .select(`
-          id,
-          name,
-          prompt,
-          created_at,
-          profiles!custom_templates_user_id_fkey(full_name)
-        `)
+        .select('*')
         .eq('id', templateId)
-        .eq('is_public', true)
         .single();
 
       if (error) throw error;
 
       if (!data) {
-        throw new Error('Template not found or not public');
+        throw new Error('Template not found');
       }
 
       const sharedTemplate: CustomTemplate & { authorName?: string } = {
@@ -78,7 +63,7 @@ export const useTemplateSharing = () => {
         name: data.name,
         blocks: data.prompt as any,
         createdAt: data.created_at,
-        authorName: data.profiles?.full_name || 'Anonymous',
+        authorName: 'Anonymous', // We'll add author info when profiles are available
       };
 
       return sharedTemplate;
