@@ -1,8 +1,15 @@
 
 import React from 'react';
 import { Zap } from 'lucide-react';
+import { CustomTemplate, PromptBlock } from '@/types/builder';
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  saveTemplate: (name: string, blocks: PromptBlock[]) => Promise<CustomTemplate>;
+  loadTemplate: (template: CustomTemplate) => PromptBlock[];
+  templates: CustomTemplate[];
+}
+
+const Header: React.FC<HeaderProps> = ({ saveTemplate, loadTemplate, templates }) => {
   return (
     <div className="mb-8 animate-fadeIn">
       <div className="flex items-center gap-3 mb-4">
