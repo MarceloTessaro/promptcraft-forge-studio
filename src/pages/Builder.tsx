@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { SuggestionEngine, Suggestion } from '@/utils/suggestionEngine';
 import PromptBlocks from '@/components/builder/PromptBlocks';
@@ -13,6 +14,7 @@ import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { logger } from '@/utils/logger';
 import { sanitizeInput } from '@/utils/validation';
 import { toast } from '@/hooks/use-toast';
+import { CustomTemplate, PromptBlock } from '@/types/builder';
 
 const Builder = () => {
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -22,7 +24,7 @@ const Builder = () => {
     return !localStorage.getItem('promptcraft_onboarding_completed');
   });
   
-  const { templates, saveTemplate, loadTemplate } = useTemplates();
+  const { customTemplates, saveTemplate } = useTemplates();
   const { handleError } = useErrorHandler();
   
   const {
@@ -63,14 +65,53 @@ const Builder = () => {
     }
   }, [assembledPrompt, handleError]);
 
-  const handleSaveTemplate = useCallback(async (name: string) => {
+  // Create wrapper functions to match Header component expectations
+  const handleSaveTemplate = useCallback(async (name: string, blocks: PromptBlock[]): Promise<CustomTemplate> => {
     try {
       const sanitizedName = sanitizeInput(name, 100);
       if (!sanitizedName) {
         throw new Error('Template name is required');
       }
       
-      await saveTemplate(sanitizedName, blocks);
+      await saveTemplate({ name: sanitizedName, blocks });
+      logger.info('Template saved successfully', 'Builder', { name: sanitizedName });
+      
+      // Return a mock CustomTemplate since saveTemplate doesn't return one
+      return {
+        id: crypto.randomUUID(),
+        name: sanitizedName,
+        blocks,
+        createdAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      handleError(error, 'Saving template');
+      throw error;
+    }
+  }, [saveTemplate, handleError]);
+
+  const handleLoadTemplate = useCallback((template: CustomTemplate): PromptBlock[] => {
+    try {
+      setBlocks(template.blocks);
+      toast({
+        title: "Template Loaded",
+        description: `"${template.name}" has been loaded.`,
+      });
+      logger.info('Template loaded successfully', 'Builder', { name: template.name });
+      return template.blocks;
+    } catch (error) {
+      handleError(error, 'Loading template');
+      return [];
+    }
+  }, [setBlocks, handleError]);
+
+  const handleSaveTemplateDialog = useCallback(async (name: string) => {
+    try {
+      const sanitizedName = sanitizeInput(name, 100);
+      if (!sanitizedName) {
+        throw new Error('Template name is required');
+      }
+      
+      await saveTemplate({ name: sanitizedName, blocks });
       logger.info('Template saved successfully', 'Builder', { name: sanitizedName });
     } catch (error) {
       handleError(error, 'Saving template');
@@ -130,9 +171,9 @@ const Builder = () => {
       <div className="min-h-screen py-4 sm:py-6 lg:py-8 bg-background">
         <div className="container mx-auto px-3 sm:px-4 lg:px-6">
           <Header 
-            saveTemplate={saveTemplate} 
-            loadTemplate={loadTemplate}
-            templates={templates}
+            saveTemplate={handleSaveTemplate} 
+            loadTemplate={handleLoadTemplate}
+            templates={customTemplates}
           />
           
           {/* Mobile-First Responsive Grid */}
@@ -180,7 +221,7 @@ const Builder = () => {
                   onApiKeyChange={() => {}}
                   isSaveDialogOpen={isSaveDialogOpen}
                   onOpenSaveDialogChange={setIsSaveDialogOpen}
-                  onSaveTemplate={handleSaveTemplate}
+                  onSaveTemplate={handleSaveTemplateDialog}
                 />
               </ErrorBoundary>
             </div>
