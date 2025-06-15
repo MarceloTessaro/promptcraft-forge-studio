@@ -1,5 +1,4 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@400..700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,58 +7,58 @@
 
 @layer base {
   :root {
-    /* Enhanced Color System */
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Refined Color System */
+    --background: 224 71.4% 4.1%; /* Darker, slightly blue-ish black */
+    --foreground: 210 20% 98%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 224 71.4% 4.1%;
+    --card-foreground: 210 20% 98%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 224 71.4% 4.1%;
+    --popover-foreground: 210 20% 98%;
 
-    --primary: 124 76% 48%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 262.1 83.3% 57.8%; /* Refined violet */
+    --primary-foreground: 210 20% 98%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 220 14.3% 11.2%;
+    --secondary-foreground: 210 20% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 220 14.3% 11.2%;
+    --muted-foreground: 220 8.9% 46.1%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 220 14.3% 11.2%;
+    --accent-foreground: 210 20% 98%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72.2% 50.6%;
+    --destructive-foreground: 210 20% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 220 13% 18%;
+    --input: 220 13% 18%;
+    --ring: 262.1 83.3% 57.8%;
     
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 124 76% 48%;
+    --sidebar-primary: 262.1 83.3% 57.8%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 262.1 83.3% 57.8%;
 
     /* Enhanced Semantic Colors */
-    --success: 142 76% 36%;
-    --success-foreground: 210 40% 98%;
+    --success: 142.1 70.6% 45.3%;
+    --success-foreground: 210 20% 98%;
     --warning: 45 93% 47%;
-    --warning-foreground: 222.2 84% 4.9%;
+    --warning-foreground: 210 20% 98%;
     --info: 199 89% 48%;
-    --info-foreground: 210 40% 98%;
+    --info-foreground: 210 20% 98%;
 
     /* Brand Colors */
     --brand-purple: 271 91% 65%;
     --brand-blue: 217 91% 60%;
     --brand-cyan: 189 94% 43%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem; /* Modern, smaller radius */
   }
 
   * {
@@ -67,23 +66,31 @@
   }
 
   body {
-    @apply bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950 text-foreground;
+    @apply bg-background text-foreground;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01';
     min-height: 100vh;
-    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Typography Scale */
-  h1 { @apply text-4xl md:text-6xl font-bold leading-tight tracking-tight; }
-  h2 { @apply text-3xl md:text-4xl font-bold leading-tight tracking-tight; }
-  h3 { @apply text-2xl md:text-3xl font-semibold leading-snug tracking-tight; }
-  h4 { @apply text-xl md:text-2xl font-semibold leading-snug; }
-  h5 { @apply text-lg md:text-xl font-medium leading-snug; }
-  h6 { @apply text-base md:text-lg font-medium leading-normal; }
-  
-  p { @apply text-base leading-relaxed; }
+  /* Fluid Typography Scale */
+  h1 { @apply text-4xl font-extrabold tracking-tighter; text-wrap: balance; }
+  h2 { @apply text-3xl font-bold tracking-tight; text-wrap: balance; }
+  h3 { @apply text-2xl font-semibold tracking-tight; }
+  h4 { @apply text-xl font-semibold; }
+  h5 { @apply text-lg font-medium; }
+  h6 { @apply text-base font-medium; }
+
+  p { @apply text-base text-muted-foreground leading-relaxed; }
   small { @apply text-sm leading-normal; }
+
+  @screen md {
+    h1 { @apply text-6xl; }
+    h2 { @apply text-4xl; }
+    h3 { @apply text-3xl; }
+    h4 { @apply text-2xl; }
+  }
   
   code, pre {
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
@@ -102,10 +109,10 @@
   }
   
   .glass-strong {
-    @apply bg-white/10 backdrop-blur-2xl border border-white/20;
+    @apply bg-black/20 backdrop-blur-2xl border border-white/10;
     box-shadow: 
       0 12px 40px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
   
   .glass-subtle {
@@ -124,7 +131,7 @@
   
   /* Enhanced Gradient Text */
   .gradient-text {
-    @apply bg-gradient-to-r from-violet-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary via-blue-400 to-cyan-400 bg-clip-text text-transparent;
     background-size: 200% 200%;
     animation: gradient-shift 3s ease-in-out infinite;
   }
@@ -217,9 +224,9 @@
     transform: translateY(0);
   }
   
-  /* Focus States */
+  /* Refined Focus Ring */
   .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:ring-offset-2 focus:ring-offset-slate-900;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
   }
 }
 

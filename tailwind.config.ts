@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -187,7 +186,12 @@ export default {
 				'glow-pulse': {
 					'0%, 100%': { 'box-shadow': '0 0 20px rgba(124, 58, 237, 0.3)' },
 					'50%': { 'box-shadow': '0 0 30px rgba(124, 58, 237, 0.5)' }
-				}
+				},
+				'shimmer': {
+					'100%': {
+						'transform': 'translateX(100%)',
+					},
+				},
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
@@ -198,6 +202,7 @@ export default {
 				'gradient-shift': 'gradient-shift 3s ease-in-out infinite',
 				'float': 'float 6s ease-in-out infinite',
 				'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
+				'shimmer': 'shimmer 2s infinite',
 			},
 			backgroundImage: {
 				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
