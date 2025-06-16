@@ -29,7 +29,7 @@ const Community: React.FC = () => {
     searchTerm,
     setSearchTerm,
     selectedTags,
-    set?SelectedTags,
+    setSelectedTags,
     sortBy,
     setSortBy,
     toggleLike,
