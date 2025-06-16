@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { toast } from '@/hooks/use-toast';
 import SaveTemplateDialog from './SaveTemplateDialog';
 import VariablesSection from './VariablesSection';
 import PromptDisplay from './PromptDisplay';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
+import LoadingFallback from '@/components/common/LoadingFallback';
 import { logger } from '@/utils/logger';
 
 interface PreviewPanelProps {
@@ -18,6 +19,8 @@ interface PreviewPanelProps {
   isPreviewLoading: boolean;
   previewError: string;
   generatePreview: () => void;
+  retryGeneration?: () => void;
+  retryCount?: number;
   openaiApiKey: string; // Deprecated but keeping for compatibility
   onApiKeyChange: (key: string) => void; // Deprecated but keeping for compatibility
   isSaveDialogOpen: boolean;
@@ -36,6 +39,8 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
   isPreviewLoading,
   previewError,
   generatePreview,
+  retryGeneration,
+  retryCount = 0,
   isSaveDialogOpen,
   onOpenSaveDialogChange,
   onSaveTemplate
@@ -66,34 +71,50 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
     generatePreview();
   };
 
+  const handleRetryGeneration = () => {
+    if (retryGeneration) {
+      retryGeneration();
+    } else {
+      generatePreview();
+    }
+  };
+
   return (
     <div className="space-y-6 lg:col-span-2">
-      <VariablesSection 
-        variables={variables}
-        variableValues={variableValues}
-        onVariableChange={onVariableChange}
-      />
+      <Suspense fallback={<LoadingFallback type="component" />}>
+        <VariablesSection 
+          variables={variables}
+          variableValues={variableValues}
+          onVariableChange={onVariableChange}
+        />
+      </Suspense>
       
       <div className="sticky top-8">
         <ErrorBoundary>
-          <PromptDisplay
-            assembledPrompt={assembledPrompt}
-            aiPreview={aiPreview}
-            isPreviewLoading={isPreviewLoading}
-            previewError={previewError}
-            promptIsEmpty={promptIsEmpty}
-            onCopyPrompt={handleCopyPrompt}
-            onSaveClick={onSaveClick}
-            onGeneratePreview={handleGeneratePreview}
-          />
+          <Suspense fallback={<LoadingFallback type="component" />}>
+            <PromptDisplay
+              assembledPrompt={assembledPrompt}
+              aiPreview={aiPreview}
+              isPreviewLoading={isPreviewLoading}
+              previewError={previewError}
+              promptIsEmpty={promptIsEmpty}
+              retryCount={retryCount}
+              onCopyPrompt={handleCopyPrompt}
+              onSaveClick={onSaveClick}
+              onGeneratePreview={handleGeneratePreview}
+              onRetryGeneration={handleRetryGeneration}
+            />
+          </Suspense>
         </ErrorBoundary>
       </div>
       
-      <SaveTemplateDialog 
-        isOpen={isSaveDialogOpen}
-        onOpenChange={onOpenSaveDialogChange}
-        onSave={onSaveTemplate}
-      />
+      <Suspense fallback={null}>
+        <SaveTemplateDialog 
+          isOpen={isSaveDialogOpen}
+          onOpenChange={onOpenSaveDialogChange}
+          onSave={onSaveTemplate}
+        />
+      </Suspense>
     </div>
   );
 };

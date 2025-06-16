@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, Suspense } from 'react';
 import { SuggestionEngine, Suggestion } from '@/utils/suggestionEngine';
 import PromptBlocks from '@/components/builder/PromptBlocks';
 import PreviewPanel from '@/components/builder/PreviewPanel';
@@ -6,6 +6,7 @@ import Header from '@/components/builder/Header';
 import SmartSuggestions from '@/components/builder/SmartSuggestions';
 import OnboardingGuide from '@/components/builder/OnboardingGuide';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
+import LoadingFallback from '@/components/common/LoadingFallback';
 import { useTemplates } from '@/hooks/use-templates';
 import { usePromptBuilder } from '@/hooks/usePromptBuilder';
 import { useAIPreview } from '@/hooks/useAIPreview';
@@ -44,7 +45,9 @@ const Builder = () => {
     aiPreview,
     isPreviewLoading,
     previewError,
+    retryCount,
     generatePreview,
+    retryGeneration,
   } = useAIPreview();
 
   const handleOnboardingClose = () => {
@@ -76,7 +79,6 @@ const Builder = () => {
       await saveTemplate({ name: sanitizedName, blocks });
       logger.info('Template saved successfully', 'Builder', { name: sanitizedName });
       
-      // Return a mock CustomTemplate since saveTemplate doesn't return one
       return {
         id: crypto.randomUUID(),
         name: sanitizedName,
@@ -166,74 +168,90 @@ const Builder = () => {
     generatePreview(assembledPrompt);
   }, [generatePreview, assembledPrompt]);
 
+  const handleRetryPreview = useCallback(() => {
+    retryGeneration(assembledPrompt);
+  }, [retryGeneration, assembledPrompt]);
+
   return (
     <ErrorBoundary onError={(error, errorInfo) => logger.error('Builder component error', 'Builder', { error, errorInfo })}>
       <div className="min-h-screen py-4 sm:py-6 lg:py-8 bg-background">
         <div className="container mx-auto px-3 sm:px-4 lg:px-6">
-          <Header 
-            saveTemplate={handleSaveTemplate} 
-            loadTemplate={handleLoadTemplate}
-            templates={customTemplates}
-          />
+          <Suspense fallback={<LoadingFallback type="component" />}>
+            <Header 
+              saveTemplate={handleSaveTemplate} 
+              loadTemplate={handleLoadTemplate}
+              templates={customTemplates}
+            />
+          </Suspense>
           
           {/* Mobile-First Responsive Grid */}
           <div className="mt-6 sm:mt-8 space-y-6 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6 xl:gap-8">
             {/* Prompt Blocks - Full width on mobile, 5 cols on desktop */}
             <div className="lg:col-span-5">
               <ErrorBoundary>
-                <PromptBlocks
-                  blocks={blocks}
-                  removeBlock={removeBlock}
-                  updateBlockContent={updateBlockContent}
-                  updateBlockProperty={updateBlockProperty}
-                  addBlock={addBlock}
-                  clearDraft={clearDraft}
-                />
+                <Suspense fallback={<LoadingFallback type="component" />}>
+                  <PromptBlocks
+                    blocks={blocks}
+                    removeBlock={removeBlock}
+                    updateBlockContent={updateBlockContent}
+                    updateBlockProperty={updateBlockProperty}
+                    addBlock={addBlock}
+                    clearDraft={clearDraft}
+                  />
+                </Suspense>
               </ErrorBoundary>
             </div>
             
             {/* Smart Suggestions - Full width on mobile, 2 cols on desktop */}
             <div className="lg:col-span-2">
               <ErrorBoundary>
-                <div className="sticky top-24">
-                  <SmartSuggestions 
-                    suggestions={suggestions}
-                    onApplySuggestion={handleApplySuggestion}
-                  />
-                </div>
+                <Suspense fallback={<LoadingFallback type="component" />}>
+                  <div className="sticky top-24">
+                    <SmartSuggestions 
+                      suggestions={suggestions}
+                      onApplySuggestion={handleApplySuggestion}
+                    />
+                  </div>
+                </Suspense>
               </ErrorBoundary>
             </div>
             
             {/* Preview Panel - Full width on mobile, 5 cols on desktop */}
             <div className="lg:col-span-5">
               <ErrorBoundary>
-                <PreviewPanel
-                  assembledPrompt={assembledPrompt}
-                  copyPrompt={copyPrompt}
-                  onSaveClick={() => setIsSaveDialogOpen(true)}
-                  variables={variables}
-                  variableValues={variableValues}
-                  onVariableChange={handleVariableChange}
-                  aiPreview={aiPreview}
-                  isPreviewLoading={isPreviewLoading}
-                  previewError={previewError}
-                  generatePreview={handleGeneratePreview}
-                  openaiApiKey=""
-                  onApiKeyChange={() => {}}
-                  isSaveDialogOpen={isSaveDialogOpen}
-                  onOpenSaveDialogChange={setIsSaveDialogOpen}
-                  onSaveTemplate={handleSaveTemplateDialog}
-                />
+                <Suspense fallback={<LoadingFallback type="component" />}>
+                  <PreviewPanel
+                    assembledPrompt={assembledPrompt}
+                    copyPrompt={copyPrompt}
+                    onSaveClick={() => setIsSaveDialogOpen(true)}
+                    variables={variables}
+                    variableValues={variableValues}
+                    onVariableChange={handleVariableChange}
+                    aiPreview={aiPreview}
+                    isPreviewLoading={isPreviewLoading}
+                    previewError={previewError}
+                    generatePreview={handleGeneratePreview}
+                    retryGeneration={handleRetryPreview}
+                    retryCount={retryCount}
+                    openaiApiKey=""
+                    onApiKeyChange={() => {}}
+                    isSaveDialogOpen={isSaveDialogOpen}
+                    onOpenSaveDialogChange={setIsSaveDialogOpen}
+                    onSaveTemplate={handleSaveTemplateDialog}
+                  />
+                </Suspense>
               </ErrorBoundary>
             </div>
           </div>
         </div>
 
         {/* Onboarding Guide */}
-        <OnboardingGuide 
-          isOpen={showOnboarding} 
-          onClose={handleOnboardingClose} 
-        />
+        <Suspense fallback={null}>
+          <OnboardingGuide 
+            isOpen={showOnboarding} 
+            onClose={handleOnboardingClose} 
+          />
+        </Suspense>
       </div>
     </ErrorBoundary>
   );
