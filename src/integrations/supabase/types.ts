@@ -202,6 +202,147 @@ export type Database = {
           },
         ]
       }
+      shared_templates: {
+        Row: {
+          blocks: Json
+          created_at: string
+          description: string | null
+          downloads_count: number | null
+          id: string
+          is_public: boolean | null
+          likes_count: number | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          blocks: Json
+          created_at?: string
+          description?: string | null
+          downloads_count?: number | null
+          id?: string
+          is_public?: boolean | null
+          likes_count?: number | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          blocks?: Json
+          created_at?: string
+          description?: string | null
+          downloads_count?: number | null
+          id?: string
+          is_public?: boolean | null
+          likes_count?: number | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      template_downloads: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: unknown | null
+          template_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          template_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          template_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_downloads_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "shared_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_likes: {
+        Row: {
+          created_at: string
+          id: string
+          template_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          template_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          template_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_likes_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "shared_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_versions: {
+        Row: {
+          blocks: Json
+          change_description: string | null
+          created_at: string
+          id: string
+          template_id: string | null
+          version_number: number
+        }
+        Insert: {
+          blocks: Json
+          change_description?: string | null
+          created_at?: string
+          id?: string
+          template_id?: string | null
+          version_number: number
+        }
+        Update: {
+          blocks?: Json
+          change_description?: string | null
+          created_at?: string
+          id?: string
+          template_id?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "shared_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
