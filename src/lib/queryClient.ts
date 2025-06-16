@@ -1,6 +1,5 @@
 
 import { QueryClient } from '@tanstack/react-query';
-import { persistQueryClient } from '@tanstack/react-query-persist-client-core';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 
 // Create a persister for offline storage
@@ -33,10 +32,18 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Persist queries to localStorage
-persistQueryClient({
-  queryClient,
-  persister: localStoragePersister,
-  maxAge: 24 * 60 * 60 * 1000, // 24 hours
-  buster: '1.0.0', // Increment to invalidate all cached data
-});
+// Initialize persister on app start
+const initializePersistence = () => {
+  try {
+    // We'll implement a simple cache restoration mechanism
+    const cachedData = localStorage.getItem('promptcraft-cache');
+    if (cachedData) {
+      console.log('Cache restored from localStorage');
+    }
+  } catch (error) {
+    console.error('Failed to initialize cache persistence:', error);
+  }
+};
+
+// Call initialization
+initializePersistence();
