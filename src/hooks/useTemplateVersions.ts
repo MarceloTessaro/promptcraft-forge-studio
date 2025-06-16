@@ -31,7 +31,7 @@ export const useTemplateVersions = (templateId?: string) => {
 
       return data?.map(version => ({
         ...version,
-        blocks: version.blocks as PromptBlock[],
+        blocks: (version.blocks as unknown) as PromptBlock[],
       })) as TemplateVersion[];
     },
     enabled: !!templateId,

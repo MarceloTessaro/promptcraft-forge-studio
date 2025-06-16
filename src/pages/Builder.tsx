@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, Suspense, useEffect } from 'react';
 import { SuggestionEngine, Suggestion } from '@/utils/suggestionEngine';
 import PromptBlocks from '@/components/builder/PromptBlocks';
@@ -259,9 +258,12 @@ const Builder = () => {
 
           <Suspense fallback={<LoadingFallback type="component" />}>
             <Header 
-              saveTemplate={handleSaveTemplate} 
-              loadTemplate={handleLoadTemplate}
-              templates={customTemplates}
+              blocks={blocks}
+              onSaveTemplate={handleSaveTemplateDialog}
+              onLoadTemplate={() => {}}
+              onExport={() => {}}
+              onClear={clearDraft}
+              hasUnsavedChanges={blocks.length > 0}
             />
           </Suspense>
           

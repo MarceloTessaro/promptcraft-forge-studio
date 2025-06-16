@@ -56,7 +56,7 @@ export const useSharedTemplates = () => {
 
       return data?.map(template => ({
         ...template,
-        blocks: template.blocks as PromptBlock[],
+        blocks: (template.blocks as unknown) as PromptBlock[],
         is_liked: user ? template.template_likes.some((like: any) => like.user_id === user.id) : false,
       })) as SharedTemplate[];
     },

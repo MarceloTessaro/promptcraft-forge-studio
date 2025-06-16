@@ -12,7 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Heart, Download, Calendar, User, Eye } from 'lucide-react';
 import { SharedTemplate } from '@/types/shared';
 import { useAuth } from '@/contexts/AuthContext';
-import PromptDisplay from '@/components/builder/PromptDisplay';
+import TemplatePromptDisplay from './TemplatePromptDisplay';
 
 interface SharedTemplatePreviewProps {
   template: SharedTemplate | null;
@@ -126,9 +126,8 @@ const SharedTemplatePreview: React.FC<SharedTemplatePreviewProps> = ({
         <ScrollArea className="max-h-[60vh] pr-4">
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white mb-4">Vista Previa del Prompt</h3>
-            <PromptDisplay
+            <TemplatePromptDisplay
               blocks={template.blocks}
-              variableValues={{}}
               className="bg-zinc-800/50 border-zinc-700"
             />
             
