@@ -1,10 +1,10 @@
 {
-  "name": "promptcraft-sanitize-mathharo", 
+  "name": "@mathharo/promptcraft-sanitize",
   "version": "0.1.0",
   "description": "Sanitizer fix for overlapping multi-token patterns.",
   "license": "MIT",
   "type": "module",
   "main": "index.js",
   "exports": { ".": "./index.js" },
-  "files": ["index.js", "README.md", "LICENSE"]
+  "files": ["index.js"]
 }
